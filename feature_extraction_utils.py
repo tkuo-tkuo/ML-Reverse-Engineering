@@ -20,11 +20,9 @@ class FeatureExtrationUtils():
         sensitivity_image = []
         for i in range(length):
             pixel_sensitivity = self.get_sensitiy_of_certain_pixel(model, image, label, i)
-            if (i+1) % 10 == 0:
-                print((i+1), '/784')
             sensitivity_image.append(pixel_sensitivity)
         
-        return sensitivity_image
+        return np.array(sensitivity_image)
 
     def evaluate_simliarity(self, actual_model, predict_model):
         pass
