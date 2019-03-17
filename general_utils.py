@@ -13,3 +13,9 @@ class GeneralUtils():
         pixels = image.reshape((28, 28))
         plt.imshow(pixels)
         plt.show()
+
+    def normalize(self, samples):
+        mean = samples.mean().astype(np.float32)
+        std = samples.std().astype(np.float32)
+        normalized_samples = (samples - mean) / std
+        return normalized_samples

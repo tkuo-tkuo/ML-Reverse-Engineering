@@ -34,7 +34,7 @@ class FeatureExtrationUtils():
         return avg_sensitivity 
 
     def get_sensitiy_of_certain_pixel_on_single_direction(self, model, image, label, index, isPositive):
-        diff_unit = 0.001
+        diff_unit = 0.01
         if not isPositive:
             diff_unit *= -1
             
@@ -58,6 +58,8 @@ class FeatureExtrationUtils():
 
         abs_distance = abs(total_traversed_unit * diff_unit)
         sensitivity = 1/abs_distance
+        if sensitivity > 1:
+            sensitivity = 0
         return sensitivity
 
         

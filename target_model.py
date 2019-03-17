@@ -69,9 +69,16 @@ class FCNetwork():
         prefix = ''
         file_name = prefix + name_of_file + '.h5'
         model.save(file_name)
+    
+    def create_trained_simply_FC_model(self, verbose=False):
+        (train_datas, train_labels), _ = self.load_data()
+        model = self.create_simple_FC_model()
+        model = self.compile_model(model)
+        model = self.train_model(model, train_datas, train_labels)
+        return model
 
-    def train_and_save_simply_FC_model(self, name_of_file, verbose=False):
-        (train_datas, train_labels), (test_datas, test_labels) = self.load_data()
+    def create_and_save_trained_simply_FC_model(self, name_of_file, verbose=False):
+        (train_datas, train_labels), _ = self.load_data()
         model = self.create_simple_FC_model()
         model = self.compile_model(model)
         model = self.train_model(model, train_datas, train_labels)
