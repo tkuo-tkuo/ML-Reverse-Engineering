@@ -26,23 +26,35 @@ class FCNetwork():
 
     def create_simple_FC_model(self):
         model = keras.models.Sequential([
-            keras.layers.Dense(1200, activation='relu',
+            keras.layers.Dense(360, activation='relu',
                                input_shape=(784, )),
-            keras.layers.Dense(51450, activation='softmax', input_shape=(1200, ))
+            keras.layers.Dropout(0.1),
+            keras.layers.Dense(64, activation='relu', input_shape=(360, )),
+            keras.layers.Dropout(0.1),
+            keras.layers.Dense(16, activation='relu', input_shape=(64, )),
+            keras.layers.Dropout(0.1),
+            keras.layers.Dense(10, activation=None, input_shape=(16, ))
         ])
+        # model = keras.models.Sequential([
+        #     keras.layers.Dense(1024, activation=keras.activations.relu,
+        #                        input_shape=(784, )),
+        #     keras.layers.Dropout(0.1),
+        #     keras.layers.Dense(1024, activation=keras.activations.relu, input_shape=(1024, )),
+        #     keras.layers.Dropout(0.1),
+        #     keras.layers.Dense(2048, activation=keras.activations.relu, input_shape=(1024, )),            
+        #     keras.layers.Dropout(0.1),
+        #     keras.layers.Dense(51450, activation=None, input_shape=(2048, ))
+        # ])
         return model
 
     def compile_model(self, model):
-        def custom_loss(y_true, y_pred):
-            return K.mean(K.square(K.abs(y_true - y_pred)))
-
-        model.compile(optimizer='adam',
-                      loss=custom_loss,
-                      metrics=[keras.metrics.kullback_leibler_divergence])
+        optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0, amsgrad=False)
+        model.compile(optimizer=optimizer,
+                      loss=keras.losses.mean_squared_error,
+                      metrics=[keras.metrics.mean_absolute_percentage_error])
         return model
 
-    def train_model(self, model, train_datas, train_labels, epochs=10, batch_size=None, callbacks=None, verbose=False):
-        print(train_datas.shape, train_labels.shape)
+    def train_model(self, model, train_datas, train_labels, epochs=1000, batch_size=5, callbacks=None, verbose=False):
         model.fit(train_datas, train_labels, epochs=epochs, batch_size=batch_size, callbacks=callbacks, verbose=verbose)
         return model
 

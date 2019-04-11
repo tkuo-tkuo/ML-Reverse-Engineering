@@ -1,73 +1,77 @@
-# import all the basic settings or essentail files
-import target_model, feature_extraction_utils, general_utils
+# create & store the dataset for our reverse model
+import general_utils, database_utils, reverse_model
 import numpy as np
-import csv
-import pandas
+database_utils = database_utils.DatabaseGenerationUtils()
+utils = general_utils.GeneralUtils()
 
-network = target_model.FCNetwork()
-feature_extraction_utils = feature_extraction_utils.FeatureExtrationUtils()
-general_utils = general_utils.GeneralUtils()
-
-# create a simple model and store our target model 
-'''
-model = network.train_and_save_simply_FC_model('model', verbose=True)
-'''
+# create & store the dataset for our reverse model
+# database_utils.generate_database_samples(200, 20, 'weight_database', 'attention_database')
+weights_database, attention_database = database_utils.load_database_samples('weight_database', 'attention_database')
+print(weights_database.shape, attention_database.shape)
 
 
-with open('database.csv', mode='w') as csv_file:
-    fieldnames = ['attention']
-    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-    writer.writeheader()
+# extract dataset
+weights_database, attention_database = database_utils.load_database_samples('weight_database', 'attention_database')
+number_of_train_datas = 160
+train_datas = attention_database[:number_of_train_datas]
+train_datas = utils.normalize(train_datas)
+test_datas = attention_database[number_of_train_datas:]
+test_datas = utils.normalize(test_datas)
+train_labels = weights_database[:number_of_train_datas]
+train_labels = utils.normalize(train_labels)
+test_labels = weights_database[number_of_train_datas:]
+test_labels = utils.normalize(test_labels)
 
-    
-    (train_datas, train_labels), (test_datas, test_labels) = network.load_data()
-    number_of_samples_generated = 20
+bias = 0.2
+shrink_rate = 0.00005
+train_datas = train_datas 
+test_datas = test_datas 
+train_labels = train_labels * shrink_rate + bias
+test_labels = test_labels * shrink_rate + bias
+print(train_labels[0][0])
 
-    for index in range(number_of_samples_generated):
-        # load our target blackbox model 
-        model = network.train_and_save_simply_FC_model('model', verbose=True)
-        '''
-        network.evaluate_model(model, test_datas, test_labels)
-        '''
-
-        # write a function called extract_weights weights given model in feature_extraction_utils.py
-        '''
-        weights = feature_extraction_utils.extract_weights(model)
-        print(weights.shape) # it should display (3, 2)
-        '''
-        model = network.load_model('model')
-        model.save_weights('model'+str(index+1)+'.h5')
-        weights = feature_extraction_utils.extract_weights(model)
-        
-
-        # write a function called extract_attentions given image and model in feature_extraction_utils.py
-        sensitivity_image = np.zeros_like(train_datas[0])
-        number_of_samples = 10
-        for i in range(number_of_samples):
-            print(i)
-            image_sample_data, image_sample_label = train_datas[i], train_labels[i]
-            sensitivity_image_i = feature_extraction_utils.extract_attention(model, image_sample_data, image_sample_label)
-            sensitivity_image = sensitivity_image + sensitivity_image_i
-
-        sensitivity_image /= number_of_samples
-
-        writer.writerow({'attention': sensitivity_image})
-
-
-
-
-
-
-
-
-# store the dataset for our reverse model
-
+train_labels = train_labels[:, :10]
+test_labels = test_labels[:, :10]
+print(train_labels.shape, test_labels.shape)
 
 
 # train our reverse model by dataset 
+network = reverse_model.FCNetwork()
+network.load_data(train_datas, train_labels, test_datas, test_labels)
 
+model = network.create_simple_FC_model()
+model = network.compile_model(model)
+model = network.train_model(model, train_datas, train_labels, verbose=True)
 
+results = model.predict(test_datas)
+results = results - bias
+test_labels = test_labels - bias
+print(test_labels.shape, results.shape)
+distance = np.absolute(test_labels - results) 
+avg_distance = np.mean(distance)
+mean_true_labels = np.mean(np.absolute(test_labels))
+
+distribution_proporiton = avg_distance / mean_true_labels
+print(distribution_proporiton)
+
+print(results[0][5], test_labels[0][5])
 
 # evaluate the performace by our self-defined metrics (design a function to produce practical metric)
 
 
+# next object -> just totally flatten it by travesing the whole architecture ()
+
+# Current problem: it's really hard for training
+'''
+1. First trail to cope with the problem: multiply both training set labels and test set labels to faciliate gradient descent 
+(it did provide some improvement)
+2. print out maybe every 10 steps instead of every step
+3. draw a training curve 
+
+4. maybe it's the problem of softmax -> it will enlarge the difference and let some of values approach to 0
+5. we our prediction labels should not be a mixture of negative and positive values
+6. maybe change the model architecture. For instance, CNN. 
+Must:
+a. extract the code in usage.py into different function
+b. write code to faciliate the training process
+'''

@@ -17,5 +17,5 @@ class GeneralUtils():
     def normalize(self, samples):
         mean = samples.mean().astype(np.float32)
         std = samples.std().astype(np.float32)
-        normalized_samples = (samples - mean) / std
+        normalized_samples = (samples - mean) / (std)
         return normalized_samples
