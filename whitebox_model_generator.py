@@ -2,15 +2,6 @@ import torch
 import torch.nn as nn
 import torchvision
 
-'''
-functions are requried:
-model_extraction
-output_extraction
-
-weights comparision
-outputs comparision
-'''
-
 class WhiteboxModelGenerator():
     
     def __init__(self):
@@ -25,11 +16,11 @@ class WhiteboxModelGenerator():
 
         # Hyper parameters
         self.num_of_epochs = 1
-        self.number_of_prinint_interval = 100
+        self.num_of_print_interval = 100
         self.input_size = 784
 
-    def generate(self, number_of_white_boxes_generated):
-        for generation_idx in range(number_of_white_boxes_generated):
+    def generate(self, num_of_white_boxes_generated):
+        for generation_idx in range(num_of_white_boxes_generated):
             self.train(generation_idx)
             self.test(generation_idx)
         
@@ -42,9 +33,9 @@ class WhiteboxModelGenerator():
         if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
             m.reset_parameters()
 
-    def set_generation_hyperparameters(self, num_of_epochs=1, number_of_prinint_interval=100, input_size=784):
+    def set_generation_hyperparameters(self, num_of_epochs=1, num_of_print_interval=100, input_size=784):
         self.num_of_epochs = num_of_epochs
-        self.number_of_prinint_interval = number_of_prinint_interval
+        self.num_of_print_interval = num_of_print_interval
         self.input_size = input_size
 
     def set_dataset_loader(self, train_loader, test_loader):
@@ -78,7 +69,7 @@ class WhiteboxModelGenerator():
                 loss.backward()
                 self.optimizer.step()
 
-                if (i+1) % self.number_of_prinint_interval == 0:
+                if (i+1) % self.num_of_print_interval == 0:
                     print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, self.num_of_epochs, i+1, total_step, loss.item()))
 
         self.save_model('./whitebox_database/model'+str(generation_index+1)+'.pt')
