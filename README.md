@@ -22,10 +22,9 @@ Files below are ordered in alphabetical order.
    
 Configuration
 ----------------
-  Python: 3.5.1  
-  Tensorflow: 1.11.0  
-  Keras: 2.2.4  
-  NumPy: 1.15.1  
+  Python: 3.6.7  
+  Pytorch: 1.0.1  
+  NumPy: 1.14.2 
 
 
 References
