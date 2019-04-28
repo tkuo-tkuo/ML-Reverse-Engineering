@@ -23,9 +23,8 @@ class CustomerizedLoss(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.forward_model = None
         self.test_loader = None
-        # can we use cross-entropy?
+
         self.loss1 = nn.MSELoss()
-        self.loss2 = nn.CrossEntropyLoss()
 
         # init forward model & test loader 
         self.init_forward_model()
@@ -43,115 +42,112 @@ class CustomerizedLoss(nn.Module):
 
     def forward(self, inp1, tar1, inp2, tar2):
         loss1 = self.loss1(inp1, tar1)
-
-        # replace the weights of self.forward_model (uncompleted)
-        forward_model_dict = self.forward_model.state_dict()
-        print(forward_model_dict)
-        # forward fixed query inputs to the forward model (uncompleted)
-
-        # outputs -> predictions (uncompleted)
-
-        # compare, remember to assign values to predictions 
-        predictions = None
-        loss2 = self.loss2(predictions, tar2)
+        loss2 = self.predictions_similarity_loss(inp2, tar2)
+        print('loss 1', loss1)
+        print('loss 2', loss2)
+        print()
         combined_loss = loss1 + loss2
         return combined_loss
 
-    def test(self):
-        # predict: expected accurancy around 10% (completed)
-        path_string = 'temporary_model.pt'
-        torch.save(self.forward_model.state_dict(), path_string)
-        model = torch.load(path_string)
+    def predictions_similarity_loss(self, predicted_weights, ground_truth_predictions):
+        # Reshape 1-D weight array into a list (completed)
+        '''
+        A list contains weights of different parts in neural networks. 
+        - It follows the order W1, B1, W2, B2, ..., Wi, Bi, ...
+        - If layer1 is a FC layer, the shape of W1 would be (hidden_size_1, input_size) and the shape of B1 would be (hidden_size_1, )
+        '''
+        predicted_model_weights = self.separate_predicted_weights(predicted_weights)
 
-        input_size = 784
-        for _ in range(1):
-            with torch.no_grad():
-                correct = 0
-                total = 0
-                for i, (images, labels) in enumerate(self.test_loader):
-                    images = images.reshape(-1, input_size).to(self.device)
-                    labels = labels.to(self.device)
-                    outputs = self.forward_model.forward(images)
-                    _, predictions = torch.max(outputs.data, 1)
+        # Load weights and biasesd in the forward model by predicted model weights (completed) 
+        self.load_weights_to_forward_model(predicted_model_weights)
 
-                    total += labels.size(0)
-                    correct += (predictions == labels).sum().item()
-                print('Accuracy of the network on the 10000 test images: {} %'.format(100 * correct / total))
-          
-            # reset weights of the forward model 
-            self.weight_reset()
+        # Load predicted weights to see the accurancy and loss (completed)
+        similarity, similarity_loss = self.predicted_predictions_similarity(ground_truth_predictions)
+        self.weight_reset()
+        return similarity_loss
 
-        # it looks workable
-        # -> load the entire weights, which should be (1, 50890)
-        import experiment_interface
-        interface = experiment_interface.ExperimentInterface()
-        num_of_model_extracted = 1
-        weights_dataset = interface.extract_whitebox_model_weights(num_of_model_extracted)
-        outputs_dataset = interface.extract_whitebox_model_outputs(num_of_model_extracted)
-        predictions_dataset = interface.extract_whitebox_model_predictions(num_of_model_extracted)
-
-        weights, outputs, predictions = weights_dataset[0], outputs_dataset[0], predictions_dataset[0]
-        print(weights.shape, outputs.shape, predictions.shape)
-
-        # -> separate weights into 4 parts
+    def separate_predicted_weights(self, predicted_weights):
+        predicted_weights = predicted_weights.cpu().detach().numpy().flatten()
         input_size, hidden_size, output_size = 784, 64, 10
+
+        # Determine size of each part
         size_W1, size_B1 = input_size * hidden_size, hidden_size
         size_W2, size_B2 = hidden_size * output_size, output_size
+        
+        # Determine offset of each part 
         W1_offset = 0
         B1_offset = W1_offset + size_W1
         W2_offset = B1_offset + size_B1
         B2_offset = W2_offset + size_W2
-        W1 = weights[W1_offset:W1_offset+size_W1]
-        B1 = weights[B1_offset:B1_offset+size_B1]
-        W2 = weights[W2_offset:W2_offset+size_W2]
-        B2 = weights[B2_offset:B2_offset+size_B2]
+
+        # Slice each part according to corresponding offset and size 
+        W1 = predicted_weights[W1_offset:W1_offset+size_W1]
+        B1 = predicted_weights[B1_offset:B1_offset+size_B1]
+        W2 = predicted_weights[W2_offset:W2_offset+size_W2]
+        B2 = predicted_weights[B2_offset:B2_offset+size_B2]
+        
+        # Reshape 1-D sliced array if needed
         W1 = W1.reshape(-1, input_size)
         W2 = W2.reshape(-1, hidden_size)
-
+        
+        # Transform from numpy to tensor & Move from CPU to GPU
         W1 = torch.from_numpy(np.float32(W1)).to(self.device)
-        # B1 = torch.from_numpy(np.float32(B1)).to(self.device)
-        B1 = torch.from_numpy(np.float32(B1))
-
+        B1 = torch.from_numpy(np.float32(B1)).to(self.device)
         W2 = torch.from_numpy(np.float32(W2)).to(self.device)
         B2 = torch.from_numpy(np.float32(B2)).to(self.device)
+        
+        # Insert each part in a list & Return the list 
+        predicted_model_weights = []
+        predicted_model_weights.append(W1)
+        predicted_model_weights.append(B1)
+        predicted_model_weights.append(W2)
+        predicted_model_weights.append(B2)
+        return predicted_model_weights
 
-        new_weights = []
-        new_weights.append(W1)
-        new_weights.append(B1)
-        new_weights.append(W2)
-        new_weights.append(B2)
-
-        print()
-        for idx, (name, weights) in enumerate(model.items()):
-            if idx == 1:
-                print('Original value', weights[0])
-                print('New value', new_weights[idx][0])
-        print()
-        # -> individually load 4 parts
+    def load_weights_to_forward_model(self, predicted_model_weights):
         copy_state_dict = self.forward_model.state_dict()
 
-        for idx, (name, _) in enumerate(model.items()):
-            copy_state_dict[name] = new_weights[idx]
+        # Itername name of each part in model & Load corresponding predicted model weight to each part 
+        for idx, name in enumerate(self.forward_model.state_dict().keys()):
+            copy_state_dict[name] = predicted_model_weights[idx]
 
-        self.forward_model.load_state_dict(copy_state_dict) # great
+        self.forward_model.load_state_dict(copy_state_dict) 
 
-        # next target: load weights of trained model to achieve test accurancy > 90%
-
+    def predicted_predictions_loss(self):
         input_size = 784
-        for _ in range(1):
-            with torch.no_grad():
-                correct = 0
-                total = 0
-                for i, (images, labels) in enumerate(self.test_loader):
-                    images = images.reshape(-1, input_size).to(self.device)
-                    labels = labels.to(self.device)
-                    outputs = self.forward_model.forward(images)
-                    _, predictions = torch.max(outputs.data, 1)
+        with torch.no_grad():
+            correct = 0
+            total = 0
+            for _, (images, labels) in enumerate(self.test_loader):
+                images = images.reshape(-1, input_size).to(self.device)
+                labels = labels.to(self.device)
+                outputs = self.forward_model.forward(images)
+                _, predictions = torch.max(outputs.data, 1)
 
-                    total += labels.size(0)
-                    correct += (predictions == labels).sum().item()
-                print('Accuracy of the network on the 10000 test images: {} %'.format(100 * correct / total))
-          
+                total += labels.size(0)
+                correct += (predictions == labels).sum().item()
+
+        accurancy = correct / total 
+        mis_classified_predictions_ratio = 1 - accurancy
+        return accurancy, mis_classified_predictions_ratio  
+
+    def predicted_predictions_similarity(self, ground_truth_predictions):
+        input_size = 784
+        with torch.no_grad():
+            correct = 0
+            total = 0
+            for _, (images, _) in enumerate(self.test_loader):
+                images = images.reshape(-1, input_size).to(self.device)
+                ground_truth_predictions = torch.from_numpy(np.int64(ground_truth_predictions)).to(self.device)
+                outputs = self.forward_model.forward(images)
+                _, predicted_predictions = torch.max(outputs.data, 1)
+
+                total += ground_truth_predictions.size(1)
+                correct += (predicted_predictions == ground_truth_predictions).sum().item()
+
+        similarity = correct / total 
+        predictions_similarity_loss = 1 - similarity
+        return similarity, predictions_similarity_loss        
 
     def weight_reset(self):
         self.forward_model.apply(self.reset_func)
@@ -160,5 +156,12 @@ class CustomerizedLoss(nn.Module):
         if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
             m.reset_parameters()
 
+    # there's a problem existing in the predicted_predictions_similarity function
 
+    # to verify predicted_predictions_similarity correctness
+    # -> overfit this functions with two identical models to achieve 100% similarity 
 
+    # ultimate goal
+    # 1. efficient train l2 loss -> is it apply cross_entropy?
+    # 2. overfitting in the training process
+    # 3. verify in the test process
