@@ -6,7 +6,9 @@ import numpy as np
 import whitebox_model_generator
 import whitebox_model_extractor
 
-import weight_model_interface
+import weight_reverse_model_interface
+
+import customized_loss_func
 
 class ExperimentInterface():
 
@@ -15,8 +17,8 @@ class ExperimentInterface():
         self.whitebox_extractor = whitebox_model_extractor.WhiteboxModelExtractor()
         self.init_whitebox_generator()
 
-        self.weight_model_interface = weight_model_interface.WeightModelInterface() 
-        self.init_weight_model_interface()
+        self.weight_reverse_model_interface = weight_reverse_model_interface.WeightReverseModelInterface() 
+        self.init_weight_reverse_model_interface()
 
     def init_whitebox_generator(self):
         # Set dataset loader, including train loader and test loader 
@@ -40,19 +42,21 @@ class ExperimentInterface():
                 output = self.layer2(output)
                 return output 
 
-        input_size, hidden_size, output_size = 80000, 60000, 50890
+        input_size, hidden_size, output_size = 784, 64, 10
         model = NeuralNet(input_size, hidden_size, output_size)
         self.whitebox_generator.set_model(model)
 
-        # Set loss function and optimizer of white-box model 
+        # Set loss function of white-box model         
+        self.whitebox_generator.set_loss_func(nn.CrossEntropyLoss())
+
+        # Set optimizer of white-box model 
         learning_rate = 0.001
-        self.whitebox_generator.set_loss_func(nn.MSELoss())
         self.whitebox_generator.set_optimizer(torch.optim.Adam(model.parameters(), lr=learning_rate))
 
         # Set hyperparameters for the generation (training) proces
         self.whitebox_generator.set_generation_hyperparameters(num_of_epochs=1, num_of_print_interval=100, input_size=784)
 
-    def init_weight_model_interface(self):
+    def init_weight_reverse_model_interface(self):
         # Set weight model architecture and its hyper parameters 
         class NeuralNet(nn.Module):
             def __init__(self, input_size, hidden_size_1, hidden_size_2, output_size):
@@ -70,31 +74,33 @@ class ExperimentInterface():
                 output = self.layer3(output)
                 return output 
 
-        input_size, hidden_size_1, hidden_size_2, output_size = 100000, 784, 64, 1
+        input_size, hidden_size_1, hidden_size_2, output_size = 100000, 100, 100, 50890
         model = NeuralNet(input_size, hidden_size_1, hidden_size_2, output_size)
-        self.weight_model_interface.set_model(model)
+        self.weight_reverse_model_interface.set_model(model)
 
-        # Set loss function and optimizer of white-box model 
+        # Set loss function of weight reverse model 
+        self.weight_reverse_model_interface.set_loss_func(customized_loss_func.CustomerizedLoss())
+
+        # Set optimizer of weight reverse model 
         learning_rate = 0.001
-        self.weight_model_interface.set_loss_func(nn.CrossEntropyLoss())
-        self.weight_model_interface.set_optimizer(torch.optim.Adam(model.parameters(), lr=learning_rate))
+        self.weight_reverse_model_interface.set_optimizer(torch.optim.Adam(model.parameters(), lr=learning_rate))
 
-        # Set hyperparameters for the generation (training) proces
-        num_of_epochs = 1
-        num_of_print_interval = 1
-        self.weight_model_interface.set_hyperparameters(num_of_epochs=num_of_epochs, num_of_print_interval=num_of_print_interval, input_size=input_size)
-
-    def set_weightmodel_train_dataset(self, weights_dataset, outputs_dataset, predictions_dataset, num_of_train_samples):
+    def set_weightmodel_train_dataset(self, weights_dataset, outputs_dataset, predictions_dataset, batch_size):
         weights_dataset = np.float32(weights_dataset)
         outputs_dataset = np.float32(outputs_dataset)
         predictions_dataset = np.float32(predictions_dataset)
-        weights_loader = torch.utils.data.DataLoader(dataset=weights_dataset)
-        outputs_loader = torch.utils.data.DataLoader(dataset=outputs_dataset)
-        predicts_loader = torch.utils.data.DataLoader(dataset=predictions_dataset) 
-        self.weight_model_interface.set_dataset_loader(weights_loader, outputs_loader, predicts_loader, num_of_train_samples)
+        self.weight_reverse_model_interface.set_dataset_loader(weights_dataset, outputs_dataset, predictions_dataset, batch_size)
+
+    def set_weightmodel_hyperparameters(self, num_of_epochs=1, num_of_print_interval=1):
+        input_size = 100000
+        self.weight_reverse_model_interface.set_hyperparameters(num_of_epochs=num_of_epochs, num_of_print_interval=num_of_print_interval, input_size=input_size)
 
     def train_weightmodel(self):
-        self.weight_model_interface.train()
+        self.weight_reverse_model_interface.train()
+
+    def train_weightmodel_experiment_1(self):
+        # it should returns lists of epochs_idxs, combined_losses, l1_losses, l2_losses
+        return self.weight_reverse_model_interface.train_with_experiment(1)
 
     def generate_whitebox_model(self, num_of_model_generated):
         self.whitebox_generator.generate(num_of_model_generated)
@@ -107,56 +113,3 @@ class ExperimentInterface():
 
     def extract_whitebox_model_predictions(self, num_of_model_extracted):
         return self.whitebox_extractor.extract_whitebox_model_predictions(num_of_model_extracted)
-
-
-        
-
-'''
-functionality to generate trained whitebox (completed)
-'''
-interface = ExperimentInterface()
-num_of_model_generated = 3
-# interface.generate_whitebox_model(num_of_model_generated)
-
-'''
-functionality to extract data from trained whitebox (completed)
-'''
-num_of_model_extracted = 3
-weights_dataset = interface.extract_whitebox_model_weights(num_of_model_extracted)
-print(weights_dataset.shape)
-
-outputs_dataset = interface.extract_whitebox_model_outputs(num_of_model_extracted)
-print(outputs_dataset.shape)
-
-predictions_dataset = interface.extract_whitebox_model_predictions(num_of_model_extracted)
-print(predictions_dataset.shape)
-
-'''
-functionality to train the weight model
-1. essemble a runable weight model 
-'''
-interface.set_weightmodel_train_dataset(weights_dataset, outputs_dataset, predictions_dataset, num_of_model_extracted)
-# go on, man! (working......)
-interface.train_weightmodel()
-'''
-problem encounter: how to train with dataset which datas and labels are separate, even in 3 individual dataset. 
--> merge these 3 datasets /(or) write some codes to deal with it?
-'''
-
-
-
-'''
-functionality to generate predictions based on outputs
-1. create an utils.py
-'''
-# from outputs (numpy) to predictions
-# np_predictions_based_on_outputs = np.argmax(np_outputs, axis=1)
-# print(np_predictions == np_predictions_based_on_outputs)
-
-
-
-'''
-functions are requried:
-weights comparision
-outputs comparision
-'''
