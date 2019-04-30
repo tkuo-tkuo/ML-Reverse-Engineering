@@ -25,6 +25,7 @@ class CustomerizedLoss(nn.Module):
         self.test_loader = None
 
         self.loss1 = nn.MSELoss()
+        self.loss2 = nn.CrossEntropyLoss()
 
         # init forward model & test loader 
         self.init_forward_model()
@@ -41,30 +42,43 @@ class CustomerizedLoss(nn.Module):
         self.test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=10000, shuffle=False)
 
     def forward(self, inp1, tar1, inp2, tar2):
-        loss1 = self.loss1(inp1, tar1)
+        loss1 = self.loss1(inp1, tar1) * 20
         loss2 = self.predictions_similarity_loss(inp2, tar2)
-        print('loss 1', loss1)
-        print('loss 2', loss2)
-        print()
+        # print('loss 1', loss1, 'loss 2', loss2)
+        # print()
         combined_loss = loss1 + loss2
-        return combined_loss
+        return combined_loss, loss1, loss2
 
     def predictions_similarity_loss(self, predicted_weights, ground_truth_predictions):
-        # Reshape 1-D weight array into a list (completed)
-        '''
-        A list contains weights of different parts in neural networks. 
-        - It follows the order W1, B1, W2, B2, ..., Wi, Bi, ...
-        - If layer1 is a FC layer, the shape of W1 would be (hidden_size_1, input_size) and the shape of B1 would be (hidden_size_1, )
-        '''
-        predicted_model_weights = self.separate_predicted_weights(predicted_weights)
+        cumulative_cross_entropy_loss = 0
+        cumulative_similarity_loss = 0
+        
+        batch_size = predicted_weights.shape[0]
+        for i in range(batch_size):
+            single_predicted_weights, single_ground_truth_predictions = predicted_weights[i], ground_truth_predictions[i]
 
-        # Load weights and biasesd in the forward model by predicted model weights (completed) 
-        self.load_weights_to_forward_model(predicted_model_weights)
+            # Reshape 1-D weight array into a list
+            '''
+            A list contains weights of different parts in neural networks. 
+            - It follows the order W1, B1, W2, B2, ..., Wi, Bi, ...
+            - If layer1 is a FC layer, the shape of W1 would be (hidden_size_1, input_size) and the shape of B1 would be (hidden_size_1, )
+            '''
+            single_predicted_model_weights = self.separate_predicted_weights(single_predicted_weights)
 
-        # Load predicted weights to see the accurancy and loss (completed)
-        similarity, similarity_loss = self.predicted_predictions_similarity(ground_truth_predictions)
-        self.weight_reset()
-        return similarity_loss
+            # Load weights and biasesd in the forward model by predicted model weights 
+            self.load_weights_to_forward_model(single_predicted_model_weights)
+            
+            # Load predicted weights to see the accurancy and loss 
+            similarity_loss, cross_entropy_loss = self.compute_single_predicted_predictions_similarity_loss(single_ground_truth_predictions)
+            cumulative_cross_entropy_loss += cross_entropy_loss
+            cumulative_similarity_loss += similarity_loss
+
+            self.weight_reset()
+
+        average_cross_entropy_loss = cumulative_cross_entropy_loss / batch_size
+        average_similarity_loss = cumulative_similarity_loss / batch_size
+        # print('average_similarity_loss', average_similarity_loss)
+        return average_cross_entropy_loss
 
     def separate_predicted_weights(self, predicted_weights):
         predicted_weights = predicted_weights.cpu().detach().numpy().flatten()
@@ -131,7 +145,7 @@ class CustomerizedLoss(nn.Module):
         mis_classified_predictions_ratio = 1 - accurancy
         return accurancy, mis_classified_predictions_ratio  
 
-    def predicted_predictions_similarity(self, ground_truth_predictions):
+    def compute_single_predicted_predictions_similarity_loss(self, ground_truth_predictions):
         input_size = 784
         with torch.no_grad():
             correct = 0
@@ -139,15 +153,18 @@ class CustomerizedLoss(nn.Module):
             for _, (images, _) in enumerate(self.test_loader):
                 images = images.reshape(-1, input_size).to(self.device)
                 ground_truth_predictions = torch.from_numpy(np.int64(ground_truth_predictions)).to(self.device)
-                outputs = self.forward_model.forward(images)
-                _, predicted_predictions = torch.max(outputs.data, 1)
+                predicted_outputs = self.forward_model.forward(images)
+                _, predicted_predictions = torch.max(predicted_outputs.data, 1) # this line may be cancelled in the future
 
-                total += ground_truth_predictions.size(1)
+                cross_entropy_loss = self.loss2(predicted_outputs, ground_truth_predictions)
+                # print(simi_ls)
+
+                total += ground_truth_predictions.size(0)
                 correct += (predicted_predictions == ground_truth_predictions).sum().item()
 
         similarity = correct / total 
         predictions_similarity_loss = 1 - similarity
-        return similarity, predictions_similarity_loss        
+        return predictions_similarity_loss, cross_entropy_loss        
 
     def weight_reset(self):
         self.forward_model.apply(self.reset_func)
@@ -162,6 +179,13 @@ class CustomerizedLoss(nn.Module):
     # -> overfit this functions with two identical models to achieve 100% similarity 
 
     # ultimate goal
-    # 1. efficient train l2 loss -> is it apply cross_entropy?
+    # 1. efficient train l2 loss -> is it apply cross_entropy? 
+    # -> is l2 loss actually be trained? -> refer to the white-box model training process!
     # 2. overfitting in the training process
     # 3. verify in the test process
+
+
+    # Is it acutally be trained during the training process?
+    # -> print it console it see whether l2 loss can be trained 
+    # Ans: I think that l2 loss is not trained at all -> apply a gradient descent method for l2 loss (see how white-box neural networks do this, crossentropy loss?)
+    # -> visualize the training process 
