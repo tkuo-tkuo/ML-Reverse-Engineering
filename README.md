@@ -32,3 +32,7 @@ References
   Seong Joon Oh, Max Augustin, Bernt Schiele, Mario Fritz <br/>
   Towards Reverse-Engineering Black-Box Neural Networks <br/>
   https://arxiv.org/abs/1711.01768 <br/>
+  
+  Yingqi Liu, Shiqing Ma, Yousra Aafer, Wen-Chuan Lee, Juan Zhai <br/>
+  Trojaning Attack on Neural Networks <br/>
+  https://docs.lib.purdue.edu/cgi/viewcontent.cgi?article=2782&context=cstech <br/>
