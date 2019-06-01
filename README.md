@@ -14,7 +14,7 @@ It's assumed that the architecture, including activation functions, of black-box
 <b>The objective of the reverse-engineering attack:</b><br/>
 Given the architecture and activation functions of a black-box neural network, a malicious attacker attempts to retrieve the weight values as close as possible. For instance, if the weight value of a certain node in a black-box neural network is 1, the objective of the reverse-engineering framework is to generate predicted weight value as close as to 1. Generally, the ultimate goal of the reverse-engineering framework is to reproduce the exact same set of weight values as the target black-box neural network.
 
-<b>3.	Methods for measuring the effectiveness of reverse-engineering attack: </b><br/>
+<b>Methods for measuring the effectiveness of reverse-engineering attack: </b><br/>
 As illustrated above, the objective is to predict the weight values of black-box neural networks as close as possible. In this paragraph, three ways of measurements will be introduced, including the reason for adoptions and corresponding baseline values. It's likely to replace or introduce additional measurement through the progress of the research.
 -	Average Absolute Error of weight values: This measurement calculates the average value based on the absolute difference of all weight values in a black-box neural network. For example, if a black-box neural network solely contains 3 nodes with value 3 and predicted weights given by the reverse-engineering framework is 1, 3, and 5. The Average Absolute Error would be 1.333.
 -	Average Absolute Percentage Error of weight values: This measurement is similar to Average Absolute Error. Instead of Absolute Difference Error, Absolute Percentage Error is used for calculation, which aims to utilize the ratio for estimating the closeness. For instance, if a black-box neural network solely contains 3 nodes with 3 and predicted weights given by the reverse-engineering framework is 1, 3, and 5. The Average Relative Error would be 0.444.
@@ -25,26 +25,23 @@ Through experiments, for the target black-box neural network in the research, it
 
 Inspirations
 ----------------
-<b>Assumption</b>
-- first assumption
-- second assumption   
+The only difference between a neural network system and a mathematical function is that the inputs and outputs of a neural network system can be of any format. When we consider neural network systems as several approximated functions, given sufficient inputs with a slight difference, we should be able to observe different ways of variation in the outputs, which can be utilized to distinguish different neural network systems. This concept is mainly my first design principle behind the first version of architecture.    
 
-<b>Suggestion</b>
-- first suggestion
+After discussing with Victor and Professor Cheung, I had discovered some problematic issues in the first approach. For instance, the approach itself is computational inefficiency and it can reverse the model to a certain level. The measurement for the effectiveness of the reverse-engineering will be introduced in the following paragraphs.  
+
+The failure of the first approach drives me to reconsider from the design perspective. I had studied several papers related to either reverse-engineering or attacks on neural network systems. [6] and [7] delivered transcendent motivations to me. In [6], this research work relaxed the restriction, it paves the foundation of reverse-engineering towards black-box neural networks by classifying architecture among black-box neural networks. While in [7], it deliberately illustrates how perturbation of selected internal nodes of neural networks can effectively be retrained the model, which provides a potential direction to improve the effectiveness of reverse-engineering. 
+
  
  
 First version of the reverse-enginnering framework   
 ----------------
-Files below are ordered in alphabetical order.  
--  <b>first file</b>  
-   description
-   
+The only difference between a neural network system and a mathematical function is that the inputs and outputs of a neural network system can be of any format. When we consider neural network systems as several approximated functions, given sufficient inputs with a slight difference, we should be able to observe different ways of variation in the outputs, which can be utilized to distinguish different neural network systems. This concept is mainly my first design principle behind the first version of framework.  
    
 Second version of the reverse-enginnering framework   
 ----------------
-Files below are ordered in alphabetical order.  
--  <b>first file</b>  
-   description
+After experiments, I had discovered some problematic issues in the first version of framework. For instance, it is computational inefficiency and it can solely reverse to a certain level.
+
+The failure of the first approach drives me to reconsider from the design perspective. I had studied several papers related to either reverse-engineering or attacks on neural network systems. [2] and [3] delivered transcendent motivations to me. In [2], this research work relaxed the restriction, it paves the foundation of reverse-engineering towards black-box neural networks by classifying architecture among black-box neural networks. While in [3], it deliberately illustrates how perturbation of selected internal nodes of neural networks can effectively be retrained the model, which provides a potential direction to improve the effectiveness of reverse-engineering. 
    
    
 Purpose & content of each file 
