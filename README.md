@@ -3,24 +3,43 @@
 ### Is it possible to conduct reverse-engineering on a black-box neural network?
 If yes, reverse-engineering on a black-box neural network must be taken into considerations while implementing a neural network system since it will be a vulnerability exploited by malicious attackers in the future. Once malicious attackers have high confidence for the internal information of a neural network system such as weights and architectures, many present white-box attacks, like [1], against neural network systems can be applied and compromise the security of neural network systems.  
 
+## Getting Started
 
-Settings and assumptions
+Following instructions will assist you for deployment and testing on your own loacl machine. 
+
+### Prerequisites
+
+What should be installed beforehand
+
+```
+to be updated
+```
+
+### Installing
+
+A step by step series of instructions that will guide you to get a development enviorment running this repository. 
+
+```
+to be updated
+```
+
+Assumptions and Measurements
 ----------------
 To make the reverse-engineering framework more concrete and understandable, it is significant to precisely specify the exact target and related assumptions for the reverse-engineering attack. The description will be further split into three parts in details as below. <br/>
 
-<details><summary><b>Knowledge of attackers</b></summary>
+<details><summary><b>Knowledge of Attackers</b></summary>
 <p>
 It's assumed that the architecture, including activation functions, of black-box neural networks is known but the training process is unknown. For instance, malicious attackers do not have the knowledge about optimizer and training dataset used. This assumption is based on the contribution of [2]. This work has manifested how it is potential for malicious attackers to discover the architecture applied by a black-box neural network. Simply speaking, for malicious attackers, information of layer and corresponding activation functions is distinguished but none of the training process and weights values of black-box neural networks is known. Therefore, the reverse-engineering of black-box neural networks becomes a grey-box problem to solve, and the current objective of this project is to resolve this grey-box problem efficiently and intelligently. 
 </p>
 </details>
 
-<details><summary><b>The objective of the reverse-engineering attack</b></summary>
+<details><summary><b>The Objective of the Reverse-engineering Attack</b></summary>
 <p>
 Given the architecture and activation functions of a black-box neural network, a malicious attacker attempts to retrieve the weight values as close as possible. For instance, if the weight value of a certain node in a black-box neural network is 1, the objective of the reverse-engineering framework is to generate predicted weight value as close as to 1. Generally, the ultimate goal of the reverse-engineering framework is to reproduce the exact same set of weight values as the target black-box neural network. 
 </p>
 </details>
 
-<details><summary><b>Methods for measuring the effectiveness of reverse-engineering attack</b></summary>
+<details><summary><b>Methods for Measuring the Effectiveness of Reverse-engineering Attack</b></summary>
 <p>
 As illustrated above, the objective is to predict the weight values of black-box neural networks as close as possible. In this paragraph, three ways of measurements will be introduced, including the reason for adoptions and corresponding baseline values. It's likely to replace or introduce additional measurement through the progress of the research. <br/>
  <br/>
@@ -38,7 +57,7 @@ Through experiments, for the target black-box neural network in the research, it
 </details>
 
 
-The first version of the reverse-engineering framework   
+The First Version of the Reverse-engineering Framework   
 ----------------
 <p align="center">
   <img src="https://github.com/KuoTzu-yang/ML-reverse/blob/master/pictures_for_README/first_version_framework_1.png">
@@ -50,7 +69,7 @@ The only difference between a neural network system and a mathematical function 
 </p>
 </details>
 
-<details><summary><b>Training process explanation</b></summary>
+<details><summary><b>Training Process Explanation</b></summary>
 <p>
 In the training process, we would like to train a model called reverse model R by leveraging abundant white-box neural networks, which have the same architecture but diverse weights from each other. The input of reverse model R is sensitivity maps of corresponding white-box neural networks and the output of R is the predicted weights for individual white-box neural networks. The purpose of the reverse model R is to leverage features (e.g. sensitivity maps) of neural networks and map these features with weights of neural networks via the training process. 
 <div align="center">
@@ -62,7 +81,7 @@ Finally, after collection of sensitivity maps and ground-truth weights of white-
 </p>
 </details>
 
-<details><summary><b>A numerical example</b></summary>
+<details><summary><b>A Numerical Example</b></summary>
 <p>
 <div align="center">
   <img src="https://github.com/KuoTzu-yang/ML-reverse/blob/master/pictures_for_README/first_version_framework_3.png">
@@ -71,7 +90,7 @@ To facilitate the comprehension for readers, a real-life example is given to ill
 </p>
 </details>
 
-<details><summary><b>Testing process explanation</b></summary>
+<details><summary><b>Testing Process Explanation</b></summary>
 <p>
 <div align="center">
   <img src="https://github.com/KuoTzu-yang/ML-reverse/blob/master/pictures_for_README/first_version_framework_4.png">
@@ -81,26 +100,50 @@ As reverse model R is trained, we can apply the same principle for a target blac
 </details>
 
 
-The second version of the reverse-engineering framework   
+The Second Version of the Reverse-engineering Framework   
 ----------------
-<b>Introduction</b><br/>
+<p align="center">
+  <img src="https://github.com/KuoTzu-yang/ML-reverse/blob/master/pictures_for_README/second_version_framework_1.png">
+</p>
+
+<details><summary><b>Introduction</b></summary>
+<p>
 After experiments, I had discovered some problematic issues in the first version of the framework. For instance, it is computational inefficiency and it can solely reverse to a certain level.
 
 The failure of the first approach drives me to reconsider from the design perspective. I had studied several papers related to either reverse-engineering or attacks on neural network systems. [2] and [3] delivered transcendent motivations to me. In [2], this research work relaxed the restriction, it paves the foundation of reverse-engineering towards black-box neural networks by classifying architecture among black-box neural networks. While in [3], it deliberately illustrates how perturbation of selected internal nodes of neural networks can effectively be retrained the model, which provides a potential direction to improve the effectiveness of reverse-engineering. 
+
+Note that the concept mentioned in the first version will be omitted in the description of the second version. 
+</p>
+</details>
+
+<details><summary><b>Primary Improvements</b></summary>
+ 
+1.	Instead of utilizing sensitivity maps, in fact, direct utilizing fixed input set and corresponding outputs can achieve a similar purpose. This alternative consumes more memory space but it is more computationally efficient, which saves a huge amount of time for computing sensitivity maps.
+
+2.	For the architecture of the reverse model, after experiences from the first approach, both fully-connected neural networks and convolutional neural networks are not suitable for this task. The training process of reverse-engineering requires extremely huge computational capability since input size and output size can be around 100K and 60K for conducting reverse-engineering on a naive three-layer fully-connected neural network. 
+To cope with this issue, I adopt variational autoencoder (VAE) architecture [8] for the reverse model, which has the nice property to downsample input data for efficient training and computation and further upsample to generate final predictions.
+
+3.	Another improvement is that single loss like the Average Absolute Percentage Error (AAPE) or cross entropy loss does not perform well in this task. No matter which loss function is applied to the reverse model R, during the testing process, the AAPE on the testing dataset is just slightly less than 100%. For instance, if a ground-truth value of a node is 1, the predicted value may be around 0.01. Through experiments, it is demonstrated the performance on the testing dataset can hardly be improved with the increase in the number of training epochs. To overcome this problem, another loss is introduced. Temporarily, I denote this loss as prediction similarity loss. The principle behind is that solely utilizing single loss like AAPE may generate a huge portion of reasonable weights. It indicates many predicted weights generated by the reverse model do not preserve the capability for predictions. If we feed some input images through predicted weights, we will receive accuracy of around 10%, which is similar to random guessing. Intuitively, these predicted weights are trapped in a local minimum. By introducing prediction similarity loss, training process avoids being easily trapped by arbitrary local minimums, where the training process towards a more reasonable direction. The training process preserves the same prediction capability while minimizing the loss from the weight difference. This technique demonstrates surprising results, where the difference between ground-truth weights and predicted weights can be significantly reduced. 
+</details>
+
+<details><summary><b>Training Process Explanation</b></summary>
+<p>
+For the training process of the second approach, in the beginning, we would like to extract useful information from white-box neural networks. In this approach, a fixed set of inputs and a corresponding set of outputs are directly utilized as the reverse model. Through experiments, mapping relation between inputs and outputs can reach similar performance level as using sensitivity maps but with the less computational requirement. 
+
+Subsequently, we train a customized VAE model for learning to reverse-engineer from mapping the relation between inputs and outputs to the ground-width weights. An additional loss, measuring the difference of prediction capability between the original white-box neural network and predicted weighted is introduced to improve the training process.
+</p>
+</details>
+
+<details><summary><b>Testing Process Explanation</b></summary>
+<p>
+For the testing process, it is just simply forwarding in the training process, where details are omitted. The second approach is still under development and I will continuously update more related information in the future. 
+</p>
+</details>
    
    
-Purpose & content of each file 
+Purpose & Content of Each File 
 ----------------
-Files below are ordered in alphabetical order.  
--  <b>first file</b>  
-   description
-   
-   
-Configuration
-----------------
-  Python: 3.6.7  
-  Pytorch: 1.0.1  
-  NumPy: 1.14.2 
+Files below are ordered in alphabetical order. (to be updated)
 
 
 References
