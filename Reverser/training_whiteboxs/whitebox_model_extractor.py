@@ -13,8 +13,6 @@ class WhiteboxModelExtractor():
 
     def extract_single_whitebox_model_weights(self, index):
         path = HARD_CODED_PREFIX + 'whitebox_database/model'+str(index)+'.pt'
-        print(self.device)
-        print(path)
         return torch.load(path)
 
     def extract_single_whitebox_model_outputs(self, index):

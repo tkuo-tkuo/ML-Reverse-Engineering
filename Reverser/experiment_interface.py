@@ -5,8 +5,8 @@ import torch.nn as nn
 import torchvision
 import numpy as np
 
-from .whitebox_model_generator import WhiteboxModelGenerator
-from .whitebox_model_extractor import WhiteboxModelExtractor
+from .training_whiteboxs import WhiteboxModelGenerator
+from .training_whiteboxs import WhiteboxModelExtractor
 
 from .weight_reverse_model_interface import WeightReverseModelInterface
 from .customized_loss_func import CustomerizedLoss
@@ -29,7 +29,9 @@ class ExperimentInterface():
         test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=10000, shuffle=False)
         self.whitebox_generator.set_dataset_loader(train_loader, test_loader)
 
-        # Set white-box architecture and its hyper parameters 
+        '''
+        Set white-box architecture and its hyper parameters 
+        ''' 
         class NeuralNet(nn.Module):
             def __init__(self, input_size, hidden_size, output_size):
                 super().__init__()
@@ -58,7 +60,9 @@ class ExperimentInterface():
         self.whitebox_generator.set_generation_hyperparameters(num_of_epochs=1, num_of_print_interval=100, input_size=784)
 
     def init_weight_reverse_model_interface(self):
-        # Set weight model architecture and its hyper parameters 
+        '''
+        Set weight model architecture and its hyper parameters 
+        '''
         class NeuralNet(nn.Module):
             def __init__(self, input_size, hidden_size_1, hidden_size_2, output_size):
                 super().__init__()

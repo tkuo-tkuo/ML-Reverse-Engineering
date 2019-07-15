@@ -7,7 +7,6 @@ class WhiteboxModelGenerator():
     def __init__(self):
         # If GPU resource is avaiable, use GPU. Otherwise, use CPU. 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
         self.train_loader = None
         self.test_loader = None
         self.model = None
@@ -23,7 +22,6 @@ class WhiteboxModelGenerator():
         for generation_idx in range(num_of_white_boxes_generated):
             self.train(generation_idx)
             self.test(generation_idx)
-        
             self.weight_reset()
 
     def weight_reset(self):

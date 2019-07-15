@@ -71,8 +71,8 @@ class WeightReverseModelInterface():
                 if (i+1) % self.num_of_print_interval == 0:
                     print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, self.num_of_epochs, i+1, total_step, loss.item()))
                     '''
-                    1. maybe should use VAE, which is suitable for abundant inputs and outputs training
-                    2. maybe separate weights into several pieces at train them individual and combine them to ensure the final prediction accurancy
+                    1. maybe should use VAE, which is suitable for abundant inputs and outputs training (PENDING)
+                    2. maybe separate weights into several pieces at train them individual and combine them to ensure the final prediction accurancy (PENDING)
                     '''
                     # print(predicted_weights[0][25000], weights[0][25000])
 
