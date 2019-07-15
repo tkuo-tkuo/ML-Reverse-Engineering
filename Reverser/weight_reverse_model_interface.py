@@ -8,7 +8,8 @@ class WeightReverseModelInterface():
     
     def __init__(self):
         # If GPU resource is avaiable, use GPU. Otherwise, use CPU. 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = 'cpu'
 
         self.num_of_train_samples = 0
         self.weights_loader = None
@@ -59,7 +60,7 @@ class WeightReverseModelInterface():
                 weights = weights.to(self.device)
 
                 # Forwarding 
-                print('DEBUG:', outputs.shape)
+                # print('DEBUG:', outputs.shape)
                 predicted_weights = self.model.forward(outputs)
                 # loss = self.loss_func.forward(predicted_weights, weights, weights, predictions)
                 loss, _, _ = self.loss_func.forward(predicted_weights, weights, predicted_weights, predictions)
@@ -75,7 +76,7 @@ class WeightReverseModelInterface():
                     1. maybe should use VAE, which is suitable for abundant inputs and outputs training (PENDING)
                     2. maybe separate weights into several pieces at train them individual and combine them to ensure the final prediction accurancy (PENDING)
                     '''
-                    # print(predicted_weights[0][25000], weights[0][25000])
+                    print(predicted_weights[0][25000], weights[0][25000])
 
     def train_with_experiment(self, experiment_number):
         total_step = self.num_of_train_samples/self.batch_size

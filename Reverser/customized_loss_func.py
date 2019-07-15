@@ -20,7 +20,9 @@ class WhiteboxNeuralNet(nn.Module):
 class CustomerizedLoss(nn.Module):
     def __init__(self):
         super(CustomerizedLoss, self).__init__()
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = "cpu"        
+        
         self.forward_model = None
         self.test_loader = None
 
