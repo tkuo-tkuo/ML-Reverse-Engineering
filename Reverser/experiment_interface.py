@@ -14,9 +14,9 @@ from .customized_loss_func import CustomerizedLoss
 class ExperimentInterface():
 
     def __init__(self):
-        self.whitebox_generator = WhiteboxModelGenerator()
+        # self.whitebox_generator = WhiteboxModelGenerator()
         self.whitebox_extractor = WhiteboxModelExtractor()
-        self.init_whitebox_generator()
+        # self.init_whitebox_generator()
 
         self.weight_reverse_model_interface = WeightReverseModelInterface() 
         self.init_weight_reverse_model_interface()
