@@ -59,6 +59,7 @@ class WeightReverseModelInterface():
                 weights = weights.to(self.device)
 
                 # Forwarding 
+                print('DEBUG:', outputs.shape)
                 predicted_weights = self.model.forward(outputs)
                 # loss = self.loss_func.forward(predicted_weights, weights, weights, predictions)
                 loss, _, _ = self.loss_func.forward(predicted_weights, weights, predicted_weights, predictions)

@@ -79,7 +79,7 @@ class ExperimentInterface():
                 output = self.layer3(output)
                 return output 
 
-        input_size, hidden_size_1, hidden_size_2, output_size = 100000, 100, 100, 50890
+        input_size, hidden_size_1, hidden_size_2, output_size = 100000, 5, 5, 50890
         model = NeuralNet(input_size, hidden_size_1, hidden_size_2, output_size)
         self.weight_reverse_model_interface.set_model(model)
 
