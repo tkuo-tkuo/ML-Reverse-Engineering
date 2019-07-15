@@ -44,10 +44,9 @@ class CustomerizedLoss(nn.Module):
         self.test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=10000, shuffle=False)
 
     def forward(self, inp1, tar1, inp2, tar2):
-        loss1 = self.loss1(inp1, tar1) * 20
-        loss2 = self.predictions_similarity_loss(inp2, tar2)
-        # print('loss 1', loss1, 'loss 2', loss2)
-        # print()
+        alpha, beta = 20, 1
+        loss1 = self.loss1(inp1, tar1) * alpha
+        loss2 = self.predictions_similarity_loss(inp2, tar2) * beta
         combined_loss = loss1 + loss2
         return combined_loss, loss1, loss2
 
@@ -174,20 +173,3 @@ class CustomerizedLoss(nn.Module):
     def reset_func(self, m):
         if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
             m.reset_parameters()
-
-    # there's a problem existing in the predicted_predictions_similarity function
-
-    # to verify predicted_predictions_similarity correctness
-    # -> overfit this functions with two identical models to achieve 100% similarity 
-
-    # ultimate goal
-    # 1. efficient train l2 loss -> is it apply cross_entropy? 
-    # -> is l2 loss actually be trained? -> refer to the white-box model training process!
-    # 2. overfitting in the training process
-    # 3. verify in the test process
-
-
-    # Is it acutally be trained during the training process?
-    # -> print it console it see whether l2 loss can be trained 
-    # Ans: I think that l2 loss is not trained at all -> apply a gradient descent method for l2 loss (see how white-box neural networks do this, crossentropy loss?)
-    # -> visualize the training process 
