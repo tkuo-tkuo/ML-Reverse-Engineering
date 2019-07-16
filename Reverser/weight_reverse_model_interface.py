@@ -45,16 +45,15 @@ class WeightReverseModelInterface():
         
         self.train_weights_loader = torch.utils.data.DataLoader(dataset=weights_dataset, batch_size=self.batch_size)
         self.train_outputs_loader = torch.utils.data.DataLoader(dataset=outputs_dataset, batch_size=self.batch_size)
-        self.train_predictions_dataset = torch.utils.data.DataLoader(dataset=predictions_dataset, batch_size=self.batch_size) 
+        self.train_predictions_loader = torch.utils.data.DataLoader(dataset=predictions_dataset, batch_size=self.batch_size) 
         
         self.num_of_train_samples = len(weights_dataset)
 
     def set_test_dataset_loader(self, weights_dataset, outputs_dataset, predictions_dataset):
-        self.test_weights_loader = torch.utils.data.DataLoader(dataset=weights_dataset)
-        self.test_outputs_loader = torch.utils.data.DataLoader(dataset=outputs_dataset)
-        self.test_predictions_loader = torch.utils.data.DataLoader(dataset=predictions_dataset) 
-        
         self.num_of_test_samples = len(weights_dataset)
+        self.test_weights_loader = torch.utils.data.DataLoader(dataset=weights_dataset, batch_size=self.num_of_test_samples)
+        self.test_outputs_loader = torch.utils.data.DataLoader(dataset=outputs_dataset, batch_size=self.num_of_test_samples)
+        self.test_predictions_loader = torch.utils.data.DataLoader(dataset=predictions_dataset, batch_size=self.num_of_test_samples) 
 
     def set_model(self, model):
         model = model.to(self.device)
@@ -69,7 +68,7 @@ class WeightReverseModelInterface():
     def train(self):
         total_step = self.num_of_train_samples/self.batch_size
         for epoch in range(self.num_of_epochs):
-            for i, (weights, outputs, predictions) in enumerate(zip(self.weights_loader, self.outputs_loader, self.predictions_loader)):
+            for i, (weights, outputs, predictions) in enumerate(zip(self.train_weights_loader, self.train_outputs_loader, self.train_predictions_loader)):
                 
                 # Move tensors to the configured device
                 outputs = outputs.reshape(-1, self.input_size).to(self.device)
@@ -79,7 +78,7 @@ class WeightReverseModelInterface():
                 predicted_weights = self.model.forward(outputs)
                 # loss = self.loss_func.forward(predicted_weights, weights, weights, predictions)
                 loss, l1, l2 = self.loss_func.forward(predicted_weights, weights, predicted_weights, predictions)
-                print(loss, l1, l2)
+               
 
                 # Optimization (back-propogation)
                 self.optimizer.zero_grad()
@@ -88,11 +87,24 @@ class WeightReverseModelInterface():
 
                 if (i+1) % self.num_of_print_interval == 0:
                     print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, self.num_of_epochs, i+1, total_step, loss.item()))
-                    # print(predicted_weights[0][25000], weights[0][25000])
+                    print('loss:', loss, 'l1:', l1, 'l2:', l2)                    
+		
 
-    def test(self, generation_index):
+    def test(self):
         with torch.no_grad():
-            pass 
+            for i, (weights, outputs, predictions) in enumerate(zip(self.test_weights_loader, self.test_outputs_loader, self.test_predictions_loader)):
+
+                # Move tensors to the configured device 
+                outputs = outputs.reshape(-1, self.input_size).to(self.device)
+                weights = weights.to(self.device)
+
+                print(weights.shape, outputs.shape, predictions.shape)
+
+                # Forwarding
+                predicted_weights = self.model.forward(outputs)
+                loss, l1, l2 = self.loss_func.forward(predicted_weights, weights, predicted_weights, predictions)
+
+                print('loss', loss, 'l1', l1, 'l2', l2)
 
 
     

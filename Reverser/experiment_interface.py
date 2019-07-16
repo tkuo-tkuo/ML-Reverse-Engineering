@@ -36,9 +36,9 @@ class ExperimentInterface():
         predictions_dataset = self.whitebox_extractor.extract_whitebox_model_predictions(
             self.num_of_model_extracted)
 
-        print(weights_dataset[:num_of_model_extracted_for_training].shape)
-        self.set_weightmodel_train_dataset(weights_dataset, outputs_dataset, predictions_dataset, self.batch_size)
-        
+        self.set_weightmodel_train_dataset(weights_dataset[:num_of_model_extracted_for_training], outputs_dataset[:num_of_model_extracted_for_training], predictions_dataset[:num_of_model_extracted_for_training], self.batch_size)
+        self.set_weightmodel_test_dataset(weights_dataset[num_of_model_extracted_for_training:], outputs_dataset[num_of_model_extracted_for_training:], predictions_dataset[num_of_model_extracted_for_training:])
+
         # Set hyperparameters for weight_reverse_model 
         self.set_weightmodel_hyperparameters(num_of_epochs=self.num_of_epochs, num_of_print_interval=self.num_of_print_interval)
 
@@ -62,7 +62,7 @@ class ExperimentInterface():
                 output = self.layer3(output)
                 return output 
 
-        input_size, hidden_size_1, hidden_size_2, output_size = 100000, 2, 2, 50890
+        input_size, hidden_size_1, hidden_size_2, output_size = 100000, 50, 50, 50890
         model = NeuralNet(input_size, hidden_size_1, hidden_size_2, output_size)
         self.weight_reverse_model_interface.set_model(model)
 
