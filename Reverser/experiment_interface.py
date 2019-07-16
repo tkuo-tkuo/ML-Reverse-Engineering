@@ -13,23 +13,33 @@ from .customized_loss_func import CustomerizedLoss
 
 class ExperimentInterface():
 
-    def __init__(self, num_of_model_extracted, batch_size, num_of_epochs, num_of_print_interval):
-        self.num_of_model_extracted = num_of_model_extracted
+    def __init__(self, num_of_model_extracted_for_training, num_of_model_extracted_for_testing, batch_size, num_of_epochs, num_of_print_interval):
+        # Set internal variables 
+        self.num_of_model_extracted_for_training = num_of_model_extracted_for_training
+        self.num_of_model_extracted_for_testing = num_of_model_extracted_for_testing
+
         self.batch_size = batch_size
         self.num_of_epochs = num_of_epochs
         self.num_of_print_interval = num_of_print_interval
 
+        # Instanciate needed classes (whitebox extractor and weight_reverse_model interface)
         self.whitebox_extractor = WhiteboxModelExtractor()
         self.weight_reverse_model_interface = WeightReverseModelInterface() 
         self.init_weight_reverse_model_interface()
 
-        self.num_of_model_extracted = num_of_model_extracted
-        self.set_weightmodel_train_dataset(
-            self.whitebox_extractor.extract_whitebox_model_weights(self.num_of_model_extracted), 
-            self.whitebox_extractor.extract_whitebox_model_outputs(self.num_of_model_extracted),
-            self.whitebox_extractor.extract_whitebox_model_predictions(self.num_of_model_extracted),
-            self.batch_size)
+        # Set dataset for weight_reverse_model training and testing
+        self.num_of_model_extracted = num_of_model_extracted_for_training + num_of_model_extracted_for_testing
+        weights_dataset = self.whitebox_extractor.extract_whitebox_model_weights(
+            self.num_of_model_extracted)
+        outputs_dataset = self.whitebox_extractor.extract_whitebox_model_outputs(
+            self.num_of_model_extracted)
+        predictions_dataset = self.whitebox_extractor.extract_whitebox_model_predictions(
+            self.num_of_model_extracted)
 
+        print(weights_dataset[:num_of_model_extracted_for_training].shape)
+        self.set_weightmodel_train_dataset(weights_dataset, outputs_dataset, predictions_dataset, self.batch_size)
+        
+        # Set hyperparameters for weight_reverse_model 
         self.set_weightmodel_hyperparameters(num_of_epochs=self.num_of_epochs, num_of_print_interval=self.num_of_print_interval)
 
     def init_weight_reverse_model_interface(self):
@@ -67,7 +77,14 @@ class ExperimentInterface():
         weights_dataset = np.float32(weights_dataset)
         outputs_dataset = np.float32(outputs_dataset)
         predictions_dataset = np.float32(predictions_dataset)
-        self.weight_reverse_model_interface.set_dataset_loader(weights_dataset, outputs_dataset, predictions_dataset, batch_size)
+        self.weight_reverse_model_interface.set_train_dataset_loader(weights_dataset, outputs_dataset, predictions_dataset, batch_size)
+
+    def set_weightmodel_test_dataset(self, weights_dataset, outputs_dataset, predictions_dataset):
+        weights_dataset = np.float32(weights_dataset)
+        outputs_dataset = np.float32(outputs_dataset)
+        predictions_dataset = np.float32(predictions_dataset)
+        self.weight_reverse_model_interface.set_test_dataset_loader(weights_dataset, outputs_dataset, predictions_dataset)
+ 
 
     def set_weightmodel_hyperparameters(self, num_of_epochs=1, num_of_print_interval=1):
         input_size = 100000
@@ -76,6 +93,6 @@ class ExperimentInterface():
     def train_weightmodel(self):
         self.weight_reverse_model_interface.train()
 
-    # PENDING
+    # WORKING
     def test_weightmodel(self):
-        pass
+        self.weight_reverse_model_interface.test()
