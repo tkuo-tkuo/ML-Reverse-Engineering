@@ -6,10 +6,11 @@ import random
 
 class WeightReverseModelInterface():
     
-    def __init__(self):
+    def __init__(self, architecture):
         # If GPU resource is avaiable, use GPU. Otherwise, use CPU. 
         # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.device = 'cpu'
+        self.architecture = architecture
 
         self.model = None
         self.loss_func = None
@@ -75,10 +76,14 @@ class WeightReverseModelInterface():
                 weights = weights.to(self.device)
 
                 # Forwarding 
-                predicted_weights = self.model.forward(outputs)
-                # loss = self.loss_func.forward(predicted_weights, weights, weights, predictions)
-                loss, l1, l2 = self.loss_func.forward(predicted_weights, weights, predicted_weights, predictions)
-               
+                if self.architecture == 'FC':
+                    predicted_weights = self.model.forward(outputs)
+                    loss = self.loss_func.forward(predicted_weights, weights, weights, predictions)
+                    l1  =loss
+                    # loss, l1, l2 = self.loss_func.forward(predicted_weights, weights, predicted_weights, predictions)
+                elif self.architecture == 'VAE':
+                    recon_batch, mu, logvar = self.model.forward(outputs)
+                    loss = self.loss_func.forward(recon_batch, weights, mu, logvar)                    
 
                 # Optimization (back-propogation)
                 self.optimizer.zero_grad()
@@ -87,8 +92,6 @@ class WeightReverseModelInterface():
 
                 if (i+1) % self.num_of_print_interval == 0:
                     print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, self.num_of_epochs, i+1, total_step, loss.item()))
-                    print('loss:', loss, 'l1:', l1, 'l2:', l2)                    
-		
 
     def test(self):
         with torch.no_grad():
@@ -98,13 +101,14 @@ class WeightReverseModelInterface():
                 outputs = outputs.reshape(-1, self.input_size).to(self.device)
                 weights = weights.to(self.device)
 
-                print(weights.shape, outputs.shape, predictions.shape)
+                # Forwarding 
+                if self.architecture == 'FC':
+                    predicted_weights = self.model.forward(outputs)
+                    loss = self.loss_func.forward(predicted_weights, weights, weights, predictions)
+                    l1  =loss
+                    # loss, l1, l2 = self.loss_func.forward(predicted_weights, weights, predicted_weights, predictions)
+                elif self.architecture == 'VAE':
+                    recon_batch, mu, logvar = self.model.forward(outputs)
+                    loss = self.loss_func.forward(recon_batch, weights, mu, logvar)                    
 
-                # Forwarding
-                predicted_weights = self.model.forward(outputs)
-                loss, l1, l2 = self.loss_func.forward(predicted_weights, weights, predicted_weights, predictions)
-
-                print('loss', loss, 'l1', l1, 'l2', l2)
-
-
-    
+                print('loss:', loss) 
