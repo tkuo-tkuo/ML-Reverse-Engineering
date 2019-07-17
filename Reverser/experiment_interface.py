@@ -2,6 +2,7 @@
 
 import torch 
 import torch.nn as nn
+from torch.nn import functional as F
 import torchvision
 import numpy as np
 
@@ -30,13 +31,12 @@ class FC_WeightModel(nn.Module):
 
 class VAE_WeightModel(nn.Module):
     def __init__(self):
-        super(VAE, self).__init__()
-
-        self.fc1 = nn.Linear(784, 400)
+        super().__init__()
+        self.fc1 = nn.Linear(100000, 400)
         self.fc21 = nn.Linear(400, 20)
         self.fc22 = nn.Linear(400, 20)
         self.fc3 = nn.Linear(20, 400)
-        self.fc4 = nn.Linear(400, 784)
+        self.fc4 = nn.Linear(400, 50890)
 
     def encode(self, x):
         h1 = F.relu(self.fc1(x))
@@ -52,10 +52,32 @@ class VAE_WeightModel(nn.Module):
         return torch.sigmoid(self.fc4(h3))
 
     def forward(self, x):
-        mu, logvar = self.encode(x.view(-1, 784))
+        mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar
 
+class VAE_loss(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        pass 
+    
+    def forward(self, recon_x, x, mu, logvar):
+        # print(recon_x, x)
+        # BCE = F.binary_cross_entropy(recon_x, x, reduction='sum')
+        MSE = F.mse_loss(recon_x, x, reduction='sum')
+
+	# see Appendix B from VAE paper:
+	# Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
+	# https://arxiv.org/abs/1312.6114
+	# 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+        KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        prime_KLD = 1e-10 * KLD
+
+        # return BCE + KLD
+        print('MSE:', MSE, 'KLD:', prime_KLD)
+        return MSE + prime_KLD
+ 
 class ExperimentInterface():
 
     def __init__(self, weightmodel_architecture, num_of_model_extracted_for_training, num_of_model_extracted_for_testing, batch_size, num_of_epochs, num_of_print_interval):
@@ -71,7 +93,7 @@ class ExperimentInterface():
 
         # Instanciate needed classes (whitebox extractor and weight_reverse_model interface)
         self.whitebox_extractor = WhiteboxModelExtractor()
-        self.weight_reverse_model_interface = WeightReverseModelInterface() 
+        self.weight_reverse_model_interface = WeightReverseModelInterface(self.weightmodel_architecture) 
         self.init_weight_reverse_model_interface(self.weightmodel_architecture)
 
         # Set dataset for weight_reverse_model training and testing
@@ -102,17 +124,8 @@ class ExperimentInterface():
         elif architecture == 'VAE':
             model = VAE_WeightModel()
 
-            def loss_function(recon_x, x, mu, logvar):
-                BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
-
-                # see Appendix B from VAE paper:
-                # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
-                # https://arxiv.org/abs/1312.6114
-                # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-                KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-
-                return BCE + KLD
-            self.weight_reverse_model_interface.set_loss_func(loss_function)
+            # Set loss function of weight reverse model 
+            self.weight_reverse_model_interface.set_loss_func(VAE_loss())
         else: 
             raise ValueError(architecture, 'is not a valid architecture indication')
 

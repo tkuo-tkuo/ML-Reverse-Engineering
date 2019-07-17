@@ -48,7 +48,8 @@ class CustomerizedLoss(nn.Module):
         loss1 = self.loss1(inp1, tar1) * alpha
         loss2 = self.predictions_similarity_loss(inp2, tar2) * beta
         combined_loss = loss1 + loss2
-        return combined_loss, loss1, loss2
+        # return combined_loss, loss1, loss2
+        return loss1
 
     def predictions_similarity_loss(self, predicted_weights, ground_truth_predictions):
         cumulative_cross_entropy_loss = 0
