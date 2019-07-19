@@ -1,3 +1,6 @@
+import torch
+import torch.nn as nn
+from torch.nn import functional as F
 
 class FC_WeightModel(nn.Module):
     def __init__(self, input_size, hidden_size_1, hidden_size_2, output_size):
@@ -19,11 +22,11 @@ class FC_WeightModel(nn.Module):
 class VAE_WeightModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.fc1 = nn.Linear(100000, 400)
-        self.fc21 = nn.Linear(400, 20)
-        self.fc22 = nn.Linear(400, 20)
-        self.fc3 = nn.Linear(20, 400)
-        self.fc4 = nn.Linear(400, 50890)
+        self.fc1 = nn.Linear(100000, 800)
+        self.fc21 = nn.Linear(800, 200)
+        self.fc22 = nn.Linear(800, 200)
+        self.fc3 = nn.Linear(200, 800)
+        self.fc4 = nn.Linear(800, 50890)
 
     def encode(self, x):
         h1 = F.relu(self.fc1(x))
@@ -39,7 +42,7 @@ class VAE_WeightModel(nn.Module):
         return torch.sigmoid(self.fc4(h3))
 
     def forward(self, x):
-        mu, logvar = self.encode(x)
+        mu, logvar = self.encode(x.view(-1, 100000))
         z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar
 
@@ -50,15 +53,14 @@ class FC_Loss(nn.Module):
         self.loss = nn.MSELoss()
 
     def forward(self, inp1, tar1):
-        loss = self.loss1(inp1, tar1) 
-        return loss1
+        return self.loss(inp1, tar1) 
 
 
-class VAE_loss(nn.Module):
+class VAE_Loss(nn.Module):
 
     def __init__(self):
         super().__init__()
-        pass
+        self.loss = nn.MSELoss()
 
     def forward(self, predicted_x, x, mu, logvar):
         # min_r_x, min_x = torch.min(predicted_x), torch.min(x)
@@ -70,6 +72,5 @@ class VAE_loss(nn.Module):
 	    # https://arxiv.org/abs/1312.6114
 	    # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
         # KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-
-        MSE = F.mse_loss(predicted_x, x, reduction='mean')
-        return MSE
+        loss = self.loss(predicted_x, x)
+        return loss

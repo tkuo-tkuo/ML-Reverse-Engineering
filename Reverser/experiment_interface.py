@@ -1,8 +1,4 @@
-# from __future__ import absolute_import
-
 import torch 
-import torch.nn as nn
-from torch.nn import functional as F
 import torchvision
 import torchvision.transforms as transforms
 import numpy as np
@@ -10,13 +6,12 @@ import numpy as np
 from .input_generation import WhiteboxModelGenerator
 from .input_generation import WhiteboxModelExtractor
 
-from .weight_reverse_models import FC_WeightModel, VAE_WeightModel, FC_Loss, FC_WeightModel
+from .weight_reverse_models import FC_WeightModel, VAE_WeightModel, FC_Loss, VAE_Loss
 from .weight_reverse_model_interface import WeightReverseModelInterface
-from .customized_loss_func import CustomerizedLoss
 
 class ExperimentInterface():
 
-    def __init__(self, weightmodel_architecture, num_of_model_extracted_for_training, num_of_model_extracted_for_testing, batch_size, num_of_epochs, num_of_print_interval):
+    def __init__(self, weightmodel_architecture, num_of_model_extracted_for_training, num_of_model_extracted_for_testing, batch_size, num_of_epochs, learning_rate, num_of_print_interval):
         # Set internal variables 
         self.weightmodel_architecture = weightmodel_architecture
         self.num_of_model_extracted_for_training = num_of_model_extracted_for_training
@@ -29,14 +24,17 @@ class ExperimentInterface():
         # Instanciate needed classes (whitebox extractor and weight_reverse_model interface)
         self.whitebox_extractor = WhiteboxModelExtractor()
         self.weight_reverse_model_interface = WeightReverseModelInterface(self.weightmodel_architecture) 
-        self._init_weight_reverse_model_interface(self.weightmodel_architecture)
+        self._init_weight_reverse_model_interface(self.weightmodel_architecture, learning_rate)
 
         # Set dataset for weight_reverse_model training and testing
         self.num_of_model_extracted = num_of_model_extracted_for_training + num_of_model_extracted_for_testing
+        print('Extracting weights dataset...')
         weights_dataset = self.whitebox_extractor.extract_whitebox_model_weights(
             self.num_of_model_extracted)
+        print('Extracting outputs dataset...')
         outputs_dataset = self.whitebox_extractor.extract_whitebox_model_outputs(
             self.num_of_model_extracted)
+        print('Extracting predictions dataset...')
         predictions_dataset = self.whitebox_extractor.extract_whitebox_model_predictions(
             self.num_of_model_extracted)
 
@@ -46,7 +44,7 @@ class ExperimentInterface():
         # Set hyperparameters for weight_reverse_model 
         self._set_weightmodel_hyperparameters(num_of_epochs=self.num_of_epochs, num_of_print_interval=self.num_of_print_interval)
 
-    def _init_weight_reverse_model_interface(self, architecture):
+    def _init_weight_reverse_model_interface(self, architecture, lr):
         '''
         Set weight model architecture and its hyper parameters 
         '''
@@ -56,17 +54,16 @@ class ExperimentInterface():
             loss = FC_Loss()
         elif architecture == 'VAE':
             model = VAE_WeightModel()
-            loss = VAE_loss()
+            loss = VAE_Loss()
         else: 
             raise ValueError(architecture, 'is not a valid architecture indication')
 
         # Set architecture and loss function for weight_reverse_model
         self.weight_reverse_model_interface.set_model(model)
-        self.weight_reverse_model_interface.set_loss_func(FC_Loss())
+        self.weight_reverse_model_interface.set_loss_func(loss)
 
         # Set optimizer of weight reverse model 
-        learning_rate = 0.001
-        self.weight_reverse_model_interface.set_optimizer(torch.optim.Adam(model.parameters(), lr=learning_rate))
+        self.weight_reverse_model_interface.set_optimizer(torch.optim.Adam(model.parameters(), lr=lr))
 
     def _set_weightmodel_train_dataset(self, weights_dataset, outputs_dataset, predictions_dataset, batch_size):
         weights_dataset = np.float32(weights_dataset)

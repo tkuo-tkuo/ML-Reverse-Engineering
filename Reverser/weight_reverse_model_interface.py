@@ -80,13 +80,12 @@ class WeightReverseModelInterface():
                 # Forwarding 
                 if self.architecture == 'FC':
                     predicted_weights = self.model.forward(outputs)
-                    loss = self.loss_func.forward(predicted_weights, weights, weights, predictions)
+                    loss = self.loss_func.forward(predicted_weights, weights)
                 elif self.architecture == 'VAE':
                     predicted_weights, mu, logvar = self.model.forward(outputs)
                     loss = self.loss_func.forward(predicted_weights, weights, mu, logvar)                    
 
                 # Optimization (back-propogation)
-                self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
 
@@ -104,7 +103,7 @@ class WeightReverseModelInterface():
                 # Forwarding 
                 if self.architecture == 'FC':
                     predicted_weights = self.model.forward(outputs)
-                    loss = self.loss_func.forward(predicted_weights, weights, weights, predictions)
+                    loss = self.loss_func.forward(predicted_weights, weights)
                 elif self.architecture == 'VAE':
                     predicted_weights, mu, logvar = self.model.forward(outputs)
                     loss = self.loss_func.forward(predicted_weights, weights, mu, logvar)                    

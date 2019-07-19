@@ -3,7 +3,7 @@ import torch.nn as nn
 import torchvision
 import numpy as np
 
-def separate_predicted_weights(predicted_weights):
+def separate_predicted_weights(predicted_weights, device):
     predicted_weights = predicted_weights.cpu().detach().numpy().flatten()
     input_size, hidden_size, output_size = 784, 64, 10
 
@@ -28,10 +28,10 @@ def separate_predicted_weights(predicted_weights):
     W2 = W2.reshape(-1, hidden_size)
     
     # Transform from numpy to tensor & Move from CPU to GPU
-    W1 = torch.from_numpy(np.float32(W1)).to(self.device)
-    B1 = torch.from_numpy(np.float32(B1)).to(self.device)
-    W2 = torch.from_numpy(np.float32(W2)).to(self.device)
-    B2 = torch.from_numpy(np.float32(B2)).to(self.device)
+    W1 = torch.from_numpy(np.float32(W1)).to(device)
+    B1 = torch.from_numpy(np.float32(B1)).to(device)
+    W2 = torch.from_numpy(np.float32(W2)).to(device)
+    B2 = torch.from_numpy(np.float32(B2)).to(device)
     
     # Insert each part in a list & Return the list 
     predicted_model_weights = []
@@ -95,9 +95,10 @@ class PredictionsSimilarityEstimator(nn.Module):
     def compute_single_predicted_predictions_similarity_loss(self, ground_truth_predictions):
         input_size = 784
         with torch.no_grad():
-            correct = 0
+            correct = 0 #DEBUG
+            match = 0
             total = 0
-            for _, (inputs, _) in enumerate(self.test_loader):
+            for _, (inputs, labels) in enumerate(self.test_loader):
                 inputs = inputs.reshape(-1, input_size).to(self.device)
                 ground_truth_predictions = torch.from_numpy(np.int64(ground_truth_predictions)).to(self.device)
                 predicted_outputs = self.forward_model.forward(inputs)
@@ -106,8 +107,21 @@ class PredictionsSimilarityEstimator(nn.Module):
                 total += ground_truth_predictions.size(0)
                 match += (predicted_predictions == ground_truth_predictions).sum().item()
 
-        similarity = correct / total 
+                '''
+                DEBUG purpose
+                '''
+                labels = labels.to(self.device)
+                correct += (predicted_predictions == labels).sum().item() 
+
+        similarity = match / total
         predictions_similarity_loss = 1 - similarity
+
+        '''
+        DEBUG purpose
+        '''
+        accurancy = correct / total 
+        print('similarity:', round(similarity, 3), 'accurancy:', round(accurancy, 3)) 
+
         return predictions_similarity_loss 
 
     def verify_predictions_diff(self, predicted_weights, ground_truth_predictions):
@@ -124,7 +138,7 @@ class PredictionsSimilarityEstimator(nn.Module):
             - It follows the order W1, B1, W2, B2, ..., Wi, Bi, ...
             - If layer1 is a FC layer, the shape of W1 would be (hidden_size_1, input_size) and the shape of B1 would be (hidden_size_1, )
             '''
-            single_predicted_model_weights = separate_predicted_weights(single_predicted_weights)
+            single_predicted_model_weights = separate_predicted_weights(single_predicted_weights, self.device)
 
             # Load weights and biasesd in the forward model by predicted model weights 
             self.load_weights_to_forward_model(single_predicted_model_weights)
