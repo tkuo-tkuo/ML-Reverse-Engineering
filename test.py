@@ -5,12 +5,12 @@ import random, math
 
 import Reverser
 
-weightmodel_architecture = 'VAE'
-num_of_model_extracted_for_training = 100
-num_of_model_extracted_for_testing = 30 
-batch_size = 10
-num_of_epochs = 5 
-num_of_print_interval = 10
+weightmodel_architecture = 'FC'
+num_of_model_extracted_for_training = 100 
+num_of_model_extracted_for_testing = 10
+batch_size = 5
+num_of_epochs = 2
+num_of_print_interval = 20
 
 interface = Reverser.ExperimentInterface(
     weightmodel_architecture,
@@ -20,3 +20,4 @@ interface = Reverser.ExperimentInterface(
 
 interface.train_weightmodel()
 interface.test_weightmodel()
+interface.verify_weightmodel_reverse_effectiveness()

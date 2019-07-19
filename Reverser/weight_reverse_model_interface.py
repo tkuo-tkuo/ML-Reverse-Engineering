@@ -4,6 +4,8 @@ import torchvision
 import numpy as np
 import random
 
+from .predictions_similarity_estimator import PredictionsSimilarityEstimator
+
 class WeightReverseModelInterface():
     
     def __init__(self, architecture):
@@ -79,11 +81,9 @@ class WeightReverseModelInterface():
                 if self.architecture == 'FC':
                     predicted_weights = self.model.forward(outputs)
                     loss = self.loss_func.forward(predicted_weights, weights, weights, predictions)
-                    l1  =loss
-                    # loss, l1, l2 = self.loss_func.forward(predicted_weights, weights, predicted_weights, predictions)
                 elif self.architecture == 'VAE':
-                    recon_batch, mu, logvar = self.model.forward(outputs)
-                    loss = self.loss_func.forward(recon_batch, weights, mu, logvar)                    
+                    predicted_weights, mu, logvar = self.model.forward(outputs)
+                    loss = self.loss_func.forward(predicted_weights, weights, mu, logvar)                    
 
                 # Optimization (back-propogation)
                 self.optimizer.zero_grad()
@@ -105,10 +105,25 @@ class WeightReverseModelInterface():
                 if self.architecture == 'FC':
                     predicted_weights = self.model.forward(outputs)
                     loss = self.loss_func.forward(predicted_weights, weights, weights, predictions)
-                    l1  =loss
-                    # loss, l1, l2 = self.loss_func.forward(predicted_weights, weights, predicted_weights, predictions)
                 elif self.architecture == 'VAE':
-                    recon_batch, mu, logvar = self.model.forward(outputs)
-                    loss = self.loss_func.forward(recon_batch, weights, mu, logvar)                    
+                    predicted_weights, mu, logvar = self.model.forward(outputs)
+                    loss = self.loss_func.forward(predicted_weights, weights, mu, logvar)                    
 
                 print('Testing loss:', loss) 
+
+    def verify(self):
+        verifier = PredictionsSimilarityEstimator()
+        with torch.no_grad():
+            for i, (weights, outputs, predictions) in enumerate(zip(self.test_weights_loader, self.test_outputs_loader, self.test_predictions_loader)):
+
+                # Move tensors to the configured device 
+                outputs = outputs.reshape(-1, self.input_size).to(self.device)
+                weights = weights.to(self.device)
+
+                # Forwarding 
+                if self.architecture == 'FC':
+                    predicted_weights = self.model.forward(outputs)
+                elif self.architecture == 'VAE':
+                    predicted_weights, mu, logvar = self.model.forward(outputs)
+
+                verifier.verify_predictions_diff(predicted_weights, predictions)
