@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 import torchvision
+import torchvision.transforms as transforms
 import numpy as np
 
 from .training_whiteboxs import WhiteboxModelGenerator
@@ -63,21 +64,20 @@ class VAE_loss(nn.Module):
         pass 
     
     def forward(self, recon_x, x, mu, logvar):
-        # print(recon_x, x)
-        # BCE = F.binary_cross_entropy(recon_x, x, reduction='sum')
-        MSE = F.mse_loss(recon_x, x, reduction='sum')
+        # min_r_x, min_x = torch.min(recon_x), torch.min(x)
+        # range_r_x, range_x = torch.max(recon_x) - min_r_x, torch.max(x) - min_x
+        # BCE = F.binary_cross_entropy((recon_x-min_r_x)/range_r_x, (x-min_x)/range_x, reduction='sum')
+        
+        MSE = F.mse_loss(recon_x, x, reduction='mean')
 
 	# see Appendix B from VAE paper:
 	# Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
 	# https://arxiv.org/abs/1312.6114
 	# 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-        KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        prime_KLD = 1e-10 * KLD
+        # KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
-        # return BCE + KLD
-        print('MSE:', MSE, 'KLD:', prime_KLD)
-        return MSE + prime_KLD
- 
+        return MSE
+
 class ExperimentInterface():
 
     def __init__(self, weightmodel_architecture, num_of_model_extracted_for_training, num_of_model_extracted_for_testing, batch_size, num_of_epochs, num_of_print_interval):
@@ -155,6 +155,8 @@ class ExperimentInterface():
     def train_weightmodel(self):
         self.weight_reverse_model_interface.train()
 
-    # WORKING
     def test_weightmodel(self):
         self.weight_reverse_model_interface.test()
+
+    def verify_weightmodel_reverse_effectiveness(self):
+        self.weight_reverse_model_interface.verify()

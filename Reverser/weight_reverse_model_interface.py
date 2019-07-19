@@ -8,8 +8,8 @@ class WeightReverseModelInterface():
     
     def __init__(self, architecture):
         # If GPU resource is avaiable, use GPU. Otherwise, use CPU. 
-        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.device = 'cpu'
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # self.device = 'cpu'
         self.architecture = architecture
 
         self.model = None
@@ -111,4 +111,4 @@ class WeightReverseModelInterface():
                     recon_batch, mu, logvar = self.model.forward(outputs)
                     loss = self.loss_func.forward(recon_batch, weights, mu, logvar)                    
 
-                print('loss:', loss) 
+                print('Testing loss:', loss) 
