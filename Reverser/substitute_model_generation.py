@@ -1,3 +1,6 @@
+import torch
+import torchvision
+from .predictions_similarity_estimator import PredictionsSimilarityEstimator
 
 class SubstituteModelGenerator():
 
@@ -8,9 +11,9 @@ class SubstituteModelGenerator():
     def generate_initial_training_set(self):
         initial_training_set = None
         test_dataset = torchvision.datasets.MNIST(root='./data', train=False, transform=torchvision.transforms.ToTensor(), download=True)
-        test_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=200, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=200, shuffle=True)
         for i, (inputs, labels) in enumerate(test_loader):
-            initial_training_set = inputs.to(device)
+            initial_training_set = inputs.to(self.device)
             break 
         return initial_training_set
 
