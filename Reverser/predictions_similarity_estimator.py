@@ -77,8 +77,7 @@ class PredictionsSimilarityEstimator(nn.Module):
         self.test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=10000, shuffle=False)
 
     def load_weights_to_forward_model(self, predicted_model_weights):
-        print(predicted_model_weights.shape)
-        print(self.forward_model.state_dict())
+        # print(self.forward_model.state_dict())
         copy_state_dict = self.forward_model.state_dict()
 
         # Itername name of each part in model & Load corresponding predicted model weight to each part 
@@ -133,7 +132,7 @@ class PredictionsSimilarityEstimator(nn.Module):
         batch_size = predicted_weights.shape[0]
         for i in range(batch_size):
             single_predicted_weights, single_ground_truth_predictions = predicted_weights[i], ground_truth_predictions[i]
-
+            
             # Reshape 1-D weight array into a list
             ''' Reshape 1-D weight array into a list
             A list contains weights of different parts in neural networks. 
@@ -144,7 +143,6 @@ class PredictionsSimilarityEstimator(nn.Module):
 
             # Load weights and biasesd in the forward model by predicted model weights 
             self.load_weights_to_forward_model(single_predicted_model_weights)
-            
             # Load predicted weights to see the accurancy and loss 
             similarity_loss = self.compute_single_predicted_predictions_similarity_loss(single_ground_truth_predictions)
             cumulative_similarity_loss += similarity_loss
@@ -153,4 +151,15 @@ class PredictionsSimilarityEstimator(nn.Module):
 
         average_similarity_loss = cumulative_similarity_loss / batch_size
         print('average_similarity_loss', average_similarity_loss)
+
+
+    def set_on_a_black_box_model(self, weights):
+        separated_weights = separate_predicted_weights(weights, self.device)
+        self.load_weights_to_forward_model(separated_weights)
+
+    def query_black_box_model(self, inputs):
+        inputs = inputs.reshape(-1, input_size).to(self.device)
+        outputs = self.forward_model.forward(inputs)
+        _, predictions = torch.max(outputs.data, 1)
+        return predictions 
      

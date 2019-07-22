@@ -126,3 +126,19 @@ class WeightReverseModelInterface():
                     predicted_weights, mu, logvar = self.model.forward(outputs)
 
                 verifier.verify_predictions_diff(predicted_weights, predictions)
+
+    def generate_substitute_model(self):
+
+
+        verifier = PredictionsSimilarityEstimator()
+        with torch.no_grad():
+            for i, (weights, outputs, predictions) in enumerate(zip(self.test_weights_loader, self.test_outputs_loader, self.test_predictions_loader)):
+
+                weights = weights.to(self.device)
+                weights_of_black_box = weights[0]
+                verifier.set_on_a_black_box_model(weights_of_black_box)
+                break
+
+        
+
+
