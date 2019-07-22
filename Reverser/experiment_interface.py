@@ -89,3 +89,6 @@ class ExperimentInterface():
 
     def verify_weightmodel_reverse_effectiveness(self):
         self.weight_reverse_model_interface.verify()
+
+    def generate_substitue_model(self):
+        pass

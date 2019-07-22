@@ -77,6 +77,8 @@ class PredictionsSimilarityEstimator(nn.Module):
         self.test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=10000, shuffle=False)
 
     def load_weights_to_forward_model(self, predicted_model_weights):
+        print(predicted_model_weights.shape)
+        print(self.forward_model.state_dict())
         copy_state_dict = self.forward_model.state_dict()
 
         # Itername name of each part in model & Load corresponding predicted model weight to each part 
