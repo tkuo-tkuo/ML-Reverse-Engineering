@@ -9,6 +9,8 @@ from .input_generation import WhiteboxModelExtractor
 from .weight_reverse_models import FC_WeightModel, VAE_WeightModel, FC_Loss, VAE_Loss
 from .weight_reverse_model_interface import WeightReverseModelInterface
 
+from .substitute_model_generation import SubstituteModelGenerator
+
 class ExperimentInterface():
 
     def __init__(self, weightmodel_architecture, num_of_model_extracted_for_training, num_of_model_extracted_for_testing, batch_size, num_of_epochs, learning_rate, num_of_print_interval):
@@ -91,4 +93,5 @@ class ExperimentInterface():
         self.weight_reverse_model_interface.verify()
 
     def generate_substitute_model(self):
-        self.weight_reverse_model_interface.generate_substitute_model()
+        substitute_model_generator = SubstituteModelGenerator()
+        substitute_model_generator.generate_substitute_model()
