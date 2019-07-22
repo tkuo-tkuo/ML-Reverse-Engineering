@@ -158,7 +158,7 @@ class PredictionsSimilarityEstimator(nn.Module):
         self.load_weights_to_forward_model(separated_weights)
 
     def query_black_box_model(self, inputs):
-        inputs = inputs.reshape(-1, input_size).to(self.device)
+        inputs = inputs.reshape(-1, 784).to(self.device)
         outputs = self.forward_model.forward(inputs)
         _, predictions = torch.max(outputs.data, 1)
         return predictions 

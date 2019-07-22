@@ -21,5 +21,5 @@ interface = Reverser.ExperimentInterface(
 
 # interface.train_weightmodel()
 # interface.test_weightmodel()
-interface.verify_weightmodel_reverse_effectiveness()
+# interface.verify_weightmodel_reverse_effectiveness()
 interface.generate_substitute_model()
