@@ -2,6 +2,8 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+from torch.autograd import Variable 
+
 import torchvision
 
 from .predictions_similarity_estimator import PredictionsSimilarityEstimator
@@ -66,15 +68,16 @@ class SubstituteModelGenerator():
         return f_prime_model
 
     def evaluate(self, f_prime, f):
+        num_of_test_samples = 5000
         test_dataset = torchvision.datasets.MNIST(root='./data', train=False, transform=torchvision.transforms.ToTensor(), download=True)
-        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=2000, shuffle=False)
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=num_of_test_samples, shuffle=False)
         for i, (inputs, labels) in enumerate(test_loader):
             inputs = inputs.reshape(-1, 784).to(self.device)
             _, f_prime_predictions = torch.max(f_prime.forward(inputs).data, 1)
             f_predictions = f.query_black_box_model(inputs)
 
             match = (f_prime_predictions == f_predictions).sum().item()
-            print('Prediction mismatch ratio:', 1 - match/2000, '/1')
+            print('Prediction mismatch ratio:', 1 - match/num_of_test_samples, '/1')
             break
 
         f_prime_weights = self.whitebox_extractor.parse_single_whitebox_model_weights(f_prime.state_dict())
@@ -85,48 +88,57 @@ class SubstituteModelGenerator():
         print('l2 norm:', np.linalg.norm(f_prime_weights-f_weights))
         print()
 
+    def to_var(self, x, requires_grad=False, volatile=False):
+        '''
+        Varialbe type that automatically choose cpu or cuda
+        '''
+        if torch.cuda.is_available():
+            x = x.cuda()
+        return Variable(x, requires_grad=requires_grad, volatile=volatile)
+
     def jacobian(self, model, x, nb_classes=10):
-    """
-    This function will return a list of PyTorch gradients
-    """
-    list_derivatives = []
-    x_var = to_var(torch.from_numpy(x), requires_grad=True)
+        '''
+        This function will return a list of PyTorch gradients
+        '''
+        list_derivatives = []
+        x_var = self.to_var(x, requires_grad=True)
 
-    # derivatives for each class
-    for class_ind in range(nb_classes):
-        score = model(x_var)[:, class_ind]
-        score.backward()
-        list_derivatives.append(x_var.grad.data.cpu().numpy())
-        x_var.grad.data.zero_()
+        # derivatives for each class
+        for class_ind in range(nb_classes):
+            score = model(x_var)
+            # score = score[:, class_ind]
+            score = score[class_ind]
+            score.backward()
+            list_derivatives.append(x_var.grad.data.cpu().numpy())
+            x_var.grad.data.zero_()
 
-    return list_derivatives
+        return list_derivatives
 
 
-    def jacobian_augmentation(self, model, X_sub_prev, Y_sub, lmbda=0.1):
-        """
+    def jacobian_augmentation(self, model, X_sub_prev, Y_sub, lmbda=0.5):
+        '''
         Create new numpy array for adversary training data
         with twice as many components on the first dimension.
-        """
-        X_sub = np.vstack([X_sub_prev, X_sub_prev])
+        '''
+        X_sub = np.vstack([X_sub_prev.cpu(), X_sub_prev.cpu()])
 
         # For each input in the previous' substitute training iteration
         for ind, x in enumerate(X_sub_prev):
-            grads = jacobian(model, x)
+            grads = self.jacobian(model, x)
             # Select gradient corresponding to the label predicted by the oracle
             grad = grads[Y_sub[ind]]
 
             # Compute sign matrix
             grad_val = np.sign(grad)
-
             # Create new synthetic point in adversary substitute training set
-            X_sub[len(X_sub_prev)+ind] = X_sub[ind] + lmbda * grad_val  # ???
+            X_sub[len(X_sub_prev)+ind] = X_sub[ind] - lmbda * grad_val  
 
         # Return augmented training data (needs to be labeled afterwards)
         return X_sub
 
     def generate_substitute_model(self):
         num_of_epochs_for_reversing = 5000  # ρ
-        num_of_inital_training_set = 2000
+        num_of_inital_training_set = 200
 
         # Setup initial training set S0
         S = self.generate_initial_training_set(num_of_inital_training_set) 
@@ -153,10 +165,12 @@ class SubstituteModelGenerator():
             optimizer.step()
 
             # Jacobian-based dataset augmentation to get S_i+1
-            S_next = self.jacobian_augmentation(f_prime_model, S, O_S)
+            if (i+1)%1000 == 0:
+                S_next = self.jacobian_augmentation(f_prime_model, S, O_S)
+                S = torch.from_numpy(S_next).to(self.device)
 
             # Evaluate (DEBUG)
-            if (i+1)%500 == 0:
+            if (i+1)%100 == 0:
                 self.evaluate(f_prime_model, f)
 
         # Obtain f' & Evaluate f'
