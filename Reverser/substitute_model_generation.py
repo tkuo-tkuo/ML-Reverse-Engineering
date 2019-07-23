@@ -85,6 +85,45 @@ class SubstituteModelGenerator():
         print('l2 norm:', np.linalg.norm(f_prime_weights-f_weights))
         print()
 
+    def jacobian(self, model, x, nb_classes=10):
+    """
+    This function will return a list of PyTorch gradients
+    """
+    list_derivatives = []
+    x_var = to_var(torch.from_numpy(x), requires_grad=True)
+
+    # derivatives for each class
+    for class_ind in range(nb_classes):
+        score = model(x_var)[:, class_ind]
+        score.backward()
+        list_derivatives.append(x_var.grad.data.cpu().numpy())
+        x_var.grad.data.zero_()
+
+    return list_derivatives
+
+
+    def jacobian_augmentation(self, model, X_sub_prev, Y_sub, lmbda=0.1):
+        """
+        Create new numpy array for adversary training data
+        with twice as many components on the first dimension.
+        """
+        X_sub = np.vstack([X_sub_prev, X_sub_prev])
+
+        # For each input in the previous' substitute training iteration
+        for ind, x in enumerate(X_sub_prev):
+            grads = jacobian(model, x)
+            # Select gradient corresponding to the label predicted by the oracle
+            grad = grads[Y_sub[ind]]
+
+            # Compute sign matrix
+            grad_val = np.sign(grad)
+
+            # Create new synthetic point in adversary substitute training set
+            X_sub[len(X_sub_prev)+ind] = X_sub[ind] + lmbda * grad_val  # ???
+
+        # Return augmented training data (needs to be labeled afterwards)
+        return X_sub
+
     def generate_substitute_model(self):
         num_of_epochs_for_reversing = 5000  # ρ
         num_of_inital_training_set = 2000
@@ -114,8 +153,7 @@ class SubstituteModelGenerator():
             optimizer.step()
 
             # Jacobian-based dataset augmentation to get S_i+1
-            # PENDING
-
+            S_next = self.jacobian_augmentation(f_prime_model, S, O_S)
 
             # Evaluate (DEBUG)
             if (i+1)%500 == 0:
