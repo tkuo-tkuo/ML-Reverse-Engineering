@@ -1,8 +1,8 @@
-# ML Reverse
+# Machine Learning Reverse Engineering
 
 ### Disclaimer 
 This repo. is no longer updated and maintained (May 2019). <br/>
-It was a tiny side-project developed with the UROP, Detecting Deep Learning Software Defects. 
+It was a tiny side-project developed with the UROP, Detecting Deep Learning Software Defects (Spring 2019). 
 
 ### Is it possible to conduct reverse-engineering on a black-box neural network?
 If yes, reverse-engineering on a black-box neural network must be taken into considerations while implementing a neural network system since it will be a vulnerability exploited by malicious attackers in the future. Once malicious attackers have high confidence for the internal information of a neural network system such as weights and architectures, many present white-box attacks, like [1], against neural network systems can be applied and compromise the security of neural network systems.  
