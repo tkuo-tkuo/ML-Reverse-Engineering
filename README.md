@@ -1,27 +1,11 @@
 # ML Reverse
 
+### Disclaimer 
+This repo. is no longer updated and maintained (May 2019). <br/>
+It was a tiny side-project developed with the UROP, Detecting Deep Learning Software Defects. 
+
 ### Is it possible to conduct reverse-engineering on a black-box neural network?
 If yes, reverse-engineering on a black-box neural network must be taken into considerations while implementing a neural network system since it will be a vulnerability exploited by malicious attackers in the future. Once malicious attackers have high confidence for the internal information of a neural network system such as weights and architectures, many present white-box attacks, like [1], against neural network systems can be applied and compromise the security of neural network systems.  
-
-## Getting Started
-
-Following instructions will assist you for deployment and testing on your own loacl machine. 
-
-### Prerequisites
-
-What should be installed beforehand
-
-```
-to be updated
-```
-
-### Installing
-
-A step by step series of instructions that will guide you to get a development enviorment running this repository. 
-
-```
-to be updated
-```
 
 Assumptions and Measurements
 ----------------
@@ -139,14 +123,8 @@ Subsequently, we train a customized VAE model for learning to reverse-engineer f
 For the testing process, it is just simply forwarding in the training process, where details are omitted. The second approach is still under development and I will continuously update more related information in the future. 
 </p>
 </details>
-   
-   
-Purpose & Content of Each File 
-----------------
-Files below are ordered in alphabetical order. (to be updated)
 
-
-References
+(Unofficial) References
 ----------------
 [1] C. Xiao, B. Li, J.-Y. Zhu, W. He, M. Liu, and D. Song, “Generating Adversarial Examples with Adversarial Networks,” Proceedings of the Twenty-Seventh International Joint Conference on Artificial Intelligence, 2018. <br/>
 [2] Seong Joon Oh, Max Augustin, Mario Fritz, and Bernt Schiele. Towards reverse-engineering black-box neural networks. In ICLR, 2018. <br/>
